@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -202,13 +203,206 @@ tbody tr:hover .racts{opacity:1}
 .lb-close:hover{color:var(--text)}
 .lb-label{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border2);color:var(--muted);font-size:0.75rem;padding:6px 16px;border-radius:20px;white-space:nowrap;}
 
-@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+/* ── Login Screen ── */
+#loginScreen{
+  position:fixed;inset:0;z-index:1000;
+  background:#1a1a2e;
+  display:flex;align-items:center;justify-content:center;
+}
+
+#loginScreen::before{
+  content:'';position:fixed;inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(108,99,255,0.15) 0%,transparent 70%);
+  pointer-events:none;
+}
+
+.login-box{
+  width:400px;max-width:94vw;
+  background:#16213e;
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:24px;
+  padding:40px 36px 36px;
+  position:relative;z-index:1;
+  animation:fadeUp 0.5s ease;
+  box-shadow:0 32px 80px rgba(0,0,0,0.5);
+}
+
+.login-moon-wrap{
+  width:72px;height:72px;
+  background:linear-gradient(135deg,#7c6fff,#a78bfa);
+  border-radius:20px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:2rem;
+  margin:0 auto 20px;
+  box-shadow:0 8px 24px rgba(124,111,255,0.35);
+}
+
+.login-title{
+  font-family:'Barlow Condensed',sans-serif;
+  font-weight:700;font-size:1.7rem;letter-spacing:0.5px;
+  color:#fff;text-align:center;margin-bottom:4px;
+}
+
+.login-sub{
+  font-size:0.78rem;color:rgba(255,255,255,0.4);
+  text-align:center;margin-bottom:32px;
+}
+
+.login-tabs{
+  display:flex;gap:0;margin-bottom:22px;
+  background:rgba(255,255,255,0.05);border-radius:10px;padding:3px;
+}
+
+.login-tab{
+  flex:1;padding:8px;border-radius:8px;
+  font-family:'Barlow',sans-serif;font-size:0.8rem;font-weight:500;
+  border:none;background:transparent;color:rgba(255,255,255,0.4);
+  cursor:pointer;transition:all 0.15s;
+}
+
+.login-tab.active{background:rgba(255,255,255,0.1);color:#fff;}
+
+.login-form{display:flex;flex-direction:column;gap:12px}
+
+.login-field-label{
+  font-size:0.68rem;font-weight:600;
+  text-transform:uppercase;letter-spacing:1.5px;
+  color:rgba(255,255,255,0.45);margin-bottom:4px;
+}
+
+.login-field{
+  display:flex;flex-direction:column;gap:5px;
+}
+
+.login-input-wrap{
+  position:relative;display:flex;align-items:center;
+}
+
+.login-input-icon{
+  position:absolute;left:14px;font-size:0.9rem;opacity:0.4;pointer-events:none;
+}
+
+.login-form input{
+  width:100%;
+  padding:12px 14px 12px 40px;
+  background:rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:12px;
+  color:#fff;
+  font-family:'Barlow',sans-serif;font-size:0.88rem;
+  outline:none;transition:all 0.15s;
+}
+
+.login-form input:focus{
+  border-color:rgba(124,111,255,0.6);
+  background:rgba(124,111,255,0.08);
+  box-shadow:0 0 0 3px rgba(124,111,255,0.15);
+}
+
+.login-form input::placeholder{color:rgba(255,255,255,0.25)}
+
+.login-btn{
+  width:100%;padding:13px;
+  background:linear-gradient(135deg,#7c6fff,#a78bfa);
+  color:#fff;
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:1rem;font-weight:700;letter-spacing:1px;
+  border:none;border-radius:12px;
+  cursor:pointer;transition:all 0.15s;
+  text-transform:uppercase;margin-top:6px;
+  box-shadow:0 4px 20px rgba(124,111,255,0.35);
+}
+
+.login-btn:hover{filter:brightness(1.1);transform:translateY(-1px);box-shadow:0 8px 28px rgba(124,111,255,0.45);}
+
+.login-error{
+  background:rgba(255,77,109,0.1);
+  border:1px solid rgba(255,77,109,0.3);
+  border-radius:10px;padding:10px 14px;
+  font-size:0.78rem;color:#ff4d6d;text-align:center;
+  display:none;
+}
+
+.login-error.show{display:block}
+
+.login-footer{
+  text-align:center;margin-top:20px;
+  font-size:0.7rem;color:rgba(255,255,255,0.2);
+}
+
+#loginUserSelect:focus{
+  border-color:rgba(124,111,255,0.6)!important;
+  background:rgba(124,111,255,0.08)!important;
+  box-shadow:0 0 0 3px rgba(124,111,255,0.15)!important;
+}
+
+#loginUserSelect option{background:#16213e;color:#fff}
+
+.login-input-wrap::after{
+  content:'▾';
+  position:absolute;right:14px;
+  color:rgba(255,255,255,0.3);font-size:0.85rem;
+  pointer-events:none;
+}
+
+/* ── User Management View ── */
+.role-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 10px;border-radius:4px;
+  font-size:0.68rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;
+}
+
+.role-admin{background:rgba(0,229,255,0.1);color:var(--cyan);border:1px solid rgba(0,229,255,0.2)}
+.role-editor{background:var(--amber-dim);color:var(--amber);border:1px solid rgba(255,179,64,0.2)}
+.role-solo_lectura{background:var(--surface2);color:var(--muted);border:1px solid var(--border2)}
+
+.logout-btn{
+  display:flex;align-items:center;gap:6px;
+  padding:7px 12px;border-radius:var(--r-sm);
+  border:1px solid var(--border2);background:transparent;
+  color:var(--muted);font-family:'Barlow',sans-serif;font-size:0.78rem;
+  cursor:pointer;transition:all 0.13s;width:100%;margin-top:8px;
+}
+.logout-btn:hover{color:var(--red);border-color:rgba(255,77,109,0.3);background:var(--red-dim)}
+
 @media(max-width:1024px){.sidebar{display:none}.main{margin-left:0;max-width:100%}.topbar,.content{padding-left:20px;padding-right:20px}}
 @media(max-width:700px){.cards{grid-template-columns:1fr 1fr}th:nth-child(n+4),td:nth-child(n+4){display:none}.fgrid{grid-template-columns:1fr}}
 @media(max-width:420px){.cards{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
+
+<!-- Login Screen -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-moon-wrap">🌙</div>
+    <div class="login-title">Luna de Perla</div>
+    <div class="login-sub">Pago Facturas — Ingresa para continuar</div>
+
+    <div class="login-form" style="margin-top:8px">
+      <div class="login-field">
+        <div class="login-field-label">Usuario</div>
+        <div class="login-input-wrap">
+          <span class="login-input-icon">👤</span>
+          <select id="loginUserSelect" style="width:100%;padding:12px 14px 12px 40px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;color:#fff;font-family:'Barlow',sans-serif;font-size:0.88rem;outline:none;transition:all 0.15s;cursor:pointer;appearance:none;-webkit-appearance:none;">
+            <option value="" style="background:#16213e">— Selecciona tu usuario —</option>
+          </select>
+        </div>
+      </div>
+      <div class="login-field">
+        <div class="login-field-label">Contraseña</div>
+        <div class="login-input-wrap">
+          <span class="login-input-icon">🔒</span>
+          <input type="password" id="loginPass" placeholder="contraseña"/>
+        </div>
+      </div>
+      <div class="login-error" id="loginError"></div>
+      <button class="login-btn" onclick="doLogin()">Ingresar</button>
+    </div>
+
+    <div class="login-footer">Luna de Perla © 2025 · Acceso restringido</div>
+  </div>
+</div>
 
 <!-- Loading spinner -->
 <div class="spinner-overlay" id="spinnerOverlay">
@@ -229,13 +423,18 @@ tbody tr:hover .racts{opacity:1}
     <button class="nav-item" onclick="navigate('reportes',this)"><span class="nav-icon">◎</span> Reportes</button>
     <span class="nav-label">Gestión</span>
     <button class="nav-item" onclick="navigate('proveedores',this)"><span class="nav-icon">◷</span> Proveedores</button>
+    <button class="nav-item" id="navUsuarios" style="display:none" onclick="navigate('usuarios',this)"><span class="nav-icon">👥</span> Usuarios</button>
     <button class="nav-item"><span class="nav-icon">◧</span> Categorías</button>
   </nav>
   <div class="sidebar-footer">
     <div class="user-chip">
-      <div class="avatar">LP</div>
-      <div><div class="user-name">Luna de Perla</div><div class="user-role">Administrador</div></div>
+      <div class="avatar" id="sidebarAvatar">LP</div>
+      <div>
+        <div class="user-name" id="sidebarName">Usuario</div>
+        <div class="user-role" id="sidebarRole">—</div>
+      </div>
     </div>
+    <button class="logout-btn" onclick="doLogout()">↩ Cerrar sesión</button>
   </div>
 </aside>
 
@@ -348,6 +547,14 @@ tbody tr:hover .racts{opacity:1}
     <!-- PROVEEDORES VIEW -->
     <div class="view" id="view-proveedores">
       <div class="dash-panel"><div class="panel-title">Proveedores registrados <span id="prov-count-lbl"></span></div><div id="provTable"></div></div>
+    </div>
+
+    <!-- USUARIOS VIEW (solo admin) -->
+    <div class="view" id="view-usuarios">
+      <div class="dash-panel">
+        <div class="panel-title">Gestión de usuarios <span id="users-count-lbl"></span></div>
+        <div id="usersTable"></div>
+      </div>
     </div>
 
   </div><!-- /content -->
@@ -601,9 +808,9 @@ function renderTable() {
           </div>
         </td>
         <td><div class="racts">
-          <button class="iBtn ok" onclick="togglePaid('${i.id}')" title="${i.estado==='pagada'?'Desmarcar':'Marcar como pagada'}">${i.estado==='pagada'?'↩':'✓'}</button>
-          <button class="iBtn" onclick="editInvoice('${i.id}')" title="Editar">✎</button>
-          <button class="iBtn del" onclick="deleteInvoice('${i.id}')" title="Eliminar">✕</button>
+          ${canEdit2()?`<button class="iBtn ok" onclick="togglePaid('${i.id}')" title="${i.estado==='pagada'?'Desmarcar':'Marcar como pagada'}">${i.estado==='pagada'?'↩':'✓'}</button>`:''}
+          ${canEdit2()?`<button class="iBtn" onclick="editInvoice('${i.id}')" title="Editar">✎</button>`:''}
+          ${canDelete()?`<button class="iBtn del" onclick="deleteInvoice('${i.id}')" title="Eliminar">✕</button>`:''}
         </div></td>
       </tr>`;
     }).join('');
@@ -839,7 +1046,7 @@ function exportCSV(){
 }
 
 // ── Navigation ────────────────────────────────────────────
-const pageTitles={facturas:'Facturas',dashboard:'Dashboard',reportes:'Reportes',proveedores:'Proveedores'};
+const pageTitles={facturas:'Facturas',dashboard:'Dashboard',reportes:'Reportes',proveedores:'Proveedores',usuarios:'Gestión de Usuarios'};
 function navigate(view,btn){
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
@@ -849,6 +1056,7 @@ function navigate(view,btn){
   if(view==='dashboard') renderDashboard();
   if(view==='reportes') renderReportes();
   if(view==='proveedores') renderProveedores();
+  if(view==='usuarios') renderUsuarios();
 }
 
 // ── Dashboard ─────────────────────────────────────────────
@@ -918,12 +1126,211 @@ function renderProveedores(){
   document.getElementById('provTable').innerHTML=`<table style="width:100%;border-collapse:collapse"><thead><tr style="background:var(--bg2)"><th style="padding:10px 16px;text-align:left;font-size:0.68rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted)">Proveedor</th><th style="padding:10px 16px;text-align:left;font-size:0.68rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted)">RUT</th><th style="padding:10px 16px;text-align:right;font-size:0.68rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted)">Total</th><th style="padding:10px 16px;text-align:center;font-size:0.68rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted)">Facturas</th><th style="padding:10px 16px;text-align:center;font-size:0.68rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted)">Estado</th></tr></thead><tbody>${provs.map(([name,p])=>`<tr style="border-bottom:1px solid var(--border);transition:background 0.1s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''"><td style="padding:13px 16px;font-size:0.84rem;font-weight:500">${name}</td><td style="padding:13px 16px;font-size:0.78rem;color:var(--muted)">${p.rut}</td><td style="padding:13px 16px;text-align:right;font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:600">${CLP(p.total)}</td><td style="padding:13px 16px;text-align:center;font-size:0.82rem;color:var(--muted)">${p.count}</td><td style="padding:13px 16px;text-align:center"><span style="font-size:0.72rem;margin:0 3px;color:var(--green)">${p.pagadas}✓</span><span style="font-size:0.72rem;margin:0 3px;color:var(--amber)">${p.pendientes}◷</span><span style="font-size:0.72rem;margin:0 3px;color:var(--red)">${p.vencidas}⚠</span></td></tr>`).join('')}</tbody></table>`;
 }
 
+// ═══════════════════════════════════════════════════════════
+// AUTH — Supabase Auth
+// ═══════════════════════════════════════════════════════════
+let currentUser = null;
+let currentPerfil = null;
+
+const authHeaders = () => ({
+  'apikey': SUPABASE_KEY,
+  'Authorization': `Bearer ${currentUser?.access_token || SUPABASE_KEY}`,
+  'Content-Type': 'application/json'
+});
+
+async function signIn(email, password) {
+  const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+    method: 'POST',
+    headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password })
+  });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error_description || data.msg || 'Error al iniciar sesión');
+  return data;
+}
+
+async function signUp(email, password, nombre) {
+  const r = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+    method: 'POST',
+    headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, data: { nombre } })
+  });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.msg || 'Error al registrarse');
+  return data;
+}
+
+async function getPerfil(userId, token) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/perfiles?id=eq.${userId}&select=*`, {
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` }
+  });
+  const data = await r.json();
+  return data[0] || null;
+}
+
+// ── Login UI ──────────────────────────────────────────────
+async function loadUserList() {
+  try {
+    // Fetch active profiles using anon key (public read policy)
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/perfiles?activo=eq.true&select=id,nombre,email&order=nombre.asc`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+    const users = await r.json();
+    const sel = document.getElementById('loginUserSelect');
+    sel.innerHTML = '<option value="">— Selecciona tu usuario —</option>';
+    users.forEach(u => {
+      const opt = document.createElement('option');
+      opt.value = u.email;
+      opt.textContent = u.nombre || u.email;
+      opt.style.background = '#16213e';
+      sel.appendChild(opt);
+    });
+  } catch(e) {
+    console.error('Error cargando usuarios:', e);
+  }
+}
+
+async function doLogin() {
+  const email = document.getElementById('loginUserSelect').value;
+  const pass = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginError');
+  errEl.classList.remove('show');
+  if (!email) { errEl.textContent = 'Selecciona tu usuario'; errEl.classList.add('show'); return; }
+  if (!pass) { errEl.textContent = 'Ingresa tu contraseña'; errEl.classList.add('show'); return; }
+  showSpinner('Iniciando sesión…');
+  try {
+    const session = await signIn(email, pass);
+    currentUser = session;
+    const perfil = await getPerfil(session.user.id, session.access_token);
+    if (!perfil) throw new Error('No se encontró tu perfil.');
+    if (!perfil.activo) throw new Error('Tu cuenta está desactivada.');
+    currentPerfil = perfil;
+    onLoginSuccess();
+  } catch(e) {
+    errEl.textContent = e.message;
+    errEl.classList.add('show');
+  } finally { hideSpinner(); }
+}
+
+function onLoginSuccess() {
+  // Update sidebar
+  const nombre = currentPerfil.nombre || currentPerfil.email;
+  document.getElementById('sidebarAvatar').textContent = nombre.slice(0,2).toUpperCase();
+  document.getElementById('sidebarName').textContent = nombre;
+  const rolLabel = { admin:'Administrador', editor:'Editor', solo_lectura:'Solo lectura' };
+  document.getElementById('sidebarRole').textContent = rolLabel[currentPerfil.rol] || currentPerfil.rol;
+  const isAdmin = currentPerfil.rol === 'admin';
+  const canEdit = currentPerfil.rol === 'admin' || currentPerfil.rol === 'editor';
+  document.getElementById('navUsuarios').style.display = isAdmin ? 'flex' : 'none';
+  if (!canEdit) document.querySelector('.btn-primary').style.display = 'none';
+  Object.assign(headers, { 'Authorization': `Bearer ${currentUser.access_token}` });
+  document.getElementById('loginScreen').style.display = 'none';
+  loadInvoices();
+}
+
+async function doLogout() {
+  await fetch(`${SUPABASE_URL}/auth/v1/logout`, {
+    method: 'POST',
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${currentUser?.access_token}` }
+  });
+  currentUser = null; currentPerfil = null;
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginUserSelect').value = '';
+  document.getElementById('loginError').classList.remove('show');
+  document.getElementById('loginScreen').style.display = 'flex';
+  invoices = [];
+}
+
+async function doLogout() {
+  await fetch(`${SUPABASE_URL}/auth/v1/logout`, {
+    method: 'POST',
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${currentUser?.access_token}` }
+  });
+  currentUser = null; currentPerfil = null;
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('loginEmail').value = '';
+  document.getElementById('loginPass').value = '';
+  invoices = [];
+}
+
+// ── Apply role restrictions to table actions ──────────────
+function canDelete() { return currentPerfil?.rol === 'admin'; }
+function canEdit2() { return currentPerfil?.rol === 'admin' || currentPerfil?.rol === 'editor'; }
+
+// ── Users management (admin only) ────────────────────────
+async function renderUsuarios() {
+  document.getElementById('users-count-lbl').textContent = '…';
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/perfiles?select=*&order=created_at.asc`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${currentUser.access_token}` }
+    });
+    const users = await r.json();
+    document.getElementById('users-count-lbl').textContent = users.length + ' usuarios';
+    const rolOptions = ['admin','editor','solo_lectura'];
+    const rolLabel = { admin:'Admin', editor:'Editor', solo_lectura:'Solo lectura' };
+    document.getElementById('usersTable').innerHTML = `
+      <table style="width:100%;border-collapse:collapse">
+        <thead><tr style="background:var(--bg2)">
+          <th style="padding:10px 16px;text-align:left;font-size:0.68rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted)">Usuario</th>
+          <th style="padding:10px 16px;text-align:left;font-size:0.68rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted)">Email</th>
+          <th style="padding:10px 16px;text-align:center;font-size:0.68rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted)">Rol</th>
+          <th style="padding:10px 16px;text-align:center;font-size:0.68rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted)">Estado</th>
+          <th style="padding:10px 16px;text-align:center;font-size:0.68rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted)">Acciones</th>
+        </tr></thead>
+        <tbody>${users.map(u => `
+          <tr style="border-bottom:1px solid var(--border);transition:background 0.1s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+            <td style="padding:13px 16px;font-size:0.84rem;font-weight:500">${u.nombre||'—'}</td>
+            <td style="padding:13px 16px;font-size:0.78rem;color:var(--muted)">${u.email}</td>
+            <td style="padding:13px 16px;text-align:center">
+              <select onchange="updateUserRole('${u.id}',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:'Barlow',sans-serif;font-size:0.78rem;padding:4px 8px;outline:none;cursor:pointer" ${u.id===currentPerfil.id?'disabled':''}>
+                ${rolOptions.map(r=>`<option value="${r}" ${u.rol===r?'selected':''}>${rolLabel[r]}</option>`).join('')}
+              </select>
+            </td>
+            <td style="padding:13px 16px;text-align:center">
+              <button onclick="toggleUserActive('${u.id}',${u.activo})" style="padding:4px 12px;border-radius:20px;border:1px solid;font-size:0.7rem;font-weight:600;cursor:pointer;background:transparent;font-family:'Barlow',sans-serif;${u.activo?'color:var(--green);border-color:rgba(0,255,157,0.3)':'color:var(--red);border-color:rgba(255,77,109,0.3)'}" ${u.id===currentPerfil.id?'disabled':''}>
+                ${u.activo?'● Activo':'○ Inactivo'}
+              </button>
+            </td>
+            <td style="padding:13px 16px;text-align:center">
+              <span style="font-size:0.7rem;color:var(--muted2)">${u.id===currentPerfil.id?'(tú)':''}</span>
+            </td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } catch(e) { toast('Error cargando usuarios: '+e.message); }
+}
+
+async function updateUserRole(userId, newRole) {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/perfiles?id=eq.${userId}`, {
+      method: 'PATCH',
+      headers: { ...authHeaders(), 'Prefer': 'return=representation' },
+      body: JSON.stringify({ rol: newRole })
+    });
+    toast('✓ Rol actualizado');
+  } catch(e) { toast('Error: '+e.message); }
+}
+
+async function toggleUserActive(userId, currentActive) {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/perfiles?id=eq.${userId}`, {
+      method: 'PATCH',
+      headers: { ...authHeaders(), 'Prefer': 'return=representation' },
+      body: JSON.stringify({ activo: !currentActive })
+    });
+    toast(currentActive ? 'Usuario desactivado' : 'Usuario activado');
+    renderUsuarios();
+  } catch(e) { toast('Error: '+e.message); }
+}
+
 // ── Toast ─────────────────────────────────────────────────
 let toastTimer;
 function toast(msg){clearTimeout(toastTimer);const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');toastTimer=setTimeout(()=>el.classList.remove('show'),2800);}
 
-// ── Start ─────────────────────────────────────────────────
-loadInvoices();
+// ── Start (show login first) ──────────────────────────────
+// App starts at login screen — loadInvoices() called after auth
+loadUserList();
+
 </script>
 </body>
 </html>
