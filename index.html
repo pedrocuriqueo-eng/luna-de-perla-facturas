@@ -1430,6 +1430,7 @@ async function renderUsuarios(){
       headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}
     });
     const users=await r.json();
+    if(!Array.isArray(users)) throw new Error(users.message||JSON.stringify(users));
     document.getElementById('users-count-lbl').textContent=users.length+' usuarios';
     document.getElementById('usersTable').innerHTML=`
       <table style="width:100%;border-collapse:collapse">
