@@ -1,5 +1,4 @@
 
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -380,7 +379,31 @@ tbody tr:hover .racts{opacity:1}
     <div class="login-title">Luna de Perla</div>
     <div class="login-sub">Pago Facturas — Ingresa para continuar</div>
 
-    <div class="login-form" style="margin-top:8px">
+    <!-- Setup inicial (sin usuarios) -->
+    <div id="tabSetup" class="login-form" style="display:none">
+      <div style="background:rgba(124,111,255,0.1);border:1px solid rgba(124,111,255,0.3);border-radius:10px;padding:12px 16px;font-size:0.78rem;color:rgba(255,255,255,0.6);text-align:center;margin-bottom:4px">
+        ✨ Primera vez — Crea tu cuenta de administrador
+      </div>
+      <div class="login-field">
+        <div class="login-field-label">Nombre</div>
+        <div class="login-input-wrap">
+          <span class="login-input-icon">✏️</span>
+          <input type="text" id="setupNombre" placeholder="Tu nombre completo"/>
+        </div>
+      </div>
+      <div class="login-field">
+        <div class="login-field-label">Contraseña</div>
+        <div class="login-input-wrap">
+          <span class="login-input-icon">🔒</span>
+          <input type="password" id="setupPass" placeholder="mínimo 6 caracteres"/>
+        </div>
+      </div>
+      <div class="login-error" id="setupError"></div>
+      <button class="login-btn" onclick="doSetup()">Crear administrador</button>
+    </div>
+
+    <!-- Login normal -->
+    <div id="tabLogin" class="login-form">
       <div class="login-field">
         <div class="login-field-label">Usuario</div>
         <div class="login-input-wrap">
@@ -552,8 +575,39 @@ tbody tr:hover .racts{opacity:1}
 
     <!-- USUARIOS VIEW (solo admin) -->
     <div class="view" id="view-usuarios">
+      <!-- Crear usuario -->
+      <div class="dash-panel" style="margin-bottom:18px">
+        <div class="panel-title">Crear nuevo usuario</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end">
+          <div class="fld">
+            <label>Nombre *</label>
+            <input type="text" id="newUserNombre" placeholder="Nombre completo"/>
+          </div>
+          <div class="fld">
+            <label>Contraseña *</label>
+            <input type="password" id="newUserPass" placeholder="mínimo 6 caracteres"/>
+          </div>
+          <div class="fld">
+            <label>Rol</label>
+            <select id="newUserRol">
+              <option value="solo_lectura">Solo lectura</option>
+              <option value="editor">Editor</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:14px;display:flex;align-items:center;gap:12px">
+          <button class="btn btn-primary" onclick="crearUsuario()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Crear usuario
+          </button>
+          <div id="newUserMsg" style="font-size:0.8rem"></div>
+        </div>
+      </div>
+
+      <!-- Lista de usuarios -->
       <div class="dash-panel">
-        <div class="panel-title">Gestión de usuarios <span id="users-count-lbl"></span></div>
+        <div class="panel-title">Usuarios registrados <span id="users-count-lbl"></span></div>
         <div id="usersTable"></div>
       </div>
     </div>
@@ -1172,11 +1226,21 @@ async function getPerfil(userId, token) {
 // ── Login UI ──────────────────────────────────────────────
 async function loadUserList() {
   try {
-    // Fetch active profiles using anon key (public read policy)
     const r = await fetch(`${SUPABASE_URL}/rest/v1/perfiles?activo=eq.true&select=id,nombre,email&order=nombre.asc`, {
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
     });
     const users = await r.json();
+
+    if (!users.length) {
+      // No users — show first-time setup
+      document.getElementById('tabLogin').style.display = 'none';
+      document.getElementById('tabSetup').style.display = 'flex';
+      return;
+    }
+
+    // Normal login — populate dropdown
+    document.getElementById('tabLogin').style.display = 'flex';
+    document.getElementById('tabSetup').style.display = 'none';
     const sel = document.getElementById('loginUserSelect');
     sel.innerHTML = '<option value="">— Selecciona tu usuario —</option>';
     users.forEach(u => {
@@ -1189,6 +1253,51 @@ async function loadUserList() {
   } catch(e) {
     console.error('Error cargando usuarios:', e);
   }
+}
+
+async function doSetup() {
+  const nombre = document.getElementById('setupNombre').value.trim();
+  const pass = document.getElementById('setupPass').value;
+  const errEl = document.getElementById('setupError');
+  errEl.classList.remove('show');
+
+  if (!nombre || !pass) { errEl.textContent = 'Completa todos los campos'; errEl.classList.add('show'); return; }
+  if (pass.length < 6) { errEl.textContent = 'La contraseña debe tener mínimo 6 caracteres'; errEl.classList.add('show'); return; }
+
+  // Generate internal email from name
+  const email = nombre.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '') + '@lunaperla.app';
+
+  showSpinner('Creando administrador…');
+  try {
+    // 1. Register user
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.msg || data.message || 'Error al crear usuario');
+
+    const userId = data.user?.id || data.id;
+    if (!userId) throw new Error('No se obtuvo el ID del usuario');
+
+    // 2. Insert admin profile
+    await fetch(`${SUPABASE_URL}/rest/v1/perfiles`, {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+      body: JSON.stringify({ id: userId, email, nombre, rol: 'admin', activo: true })
+    });
+
+    // 3. Auto login
+    const session = await signIn(email, pass);
+    currentUser = session;
+    currentPerfil = { id: userId, email, nombre, rol: 'admin', activo: true };
+    onLoginSuccess();
+    toast('✓ Administrador creado — ¡Bienvenido!');
+  } catch(e) {
+    errEl.textContent = e.message;
+    errEl.classList.add('show');
+  } finally { hideSpinner(); }
 }
 
 async function doLogin() {
@@ -1259,69 +1368,134 @@ function canDelete() { return currentPerfil?.rol === 'admin'; }
 function canEdit2() { return currentPerfil?.rol === 'admin' || currentPerfil?.rol === 'editor'; }
 
 // ── Users management (admin only) ────────────────────────
-async function renderUsuarios() {
-  document.getElementById('users-count-lbl').textContent = '…';
-  try {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/perfiles?select=*&order=created_at.asc`, {
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${currentUser.access_token}` }
+async function crearUsuario(){
+  const nombre=document.getElementById('newUserNombre').value.trim();
+  const pass=document.getElementById('newUserPass').value;
+  const rol=document.getElementById('newUserRol').value;
+  const msgEl=document.getElementById('newUserMsg');
+  msgEl.style.color='var(--muted)';msgEl.textContent='';
+
+  if(!nombre||!pass){msgEl.style.color='var(--red)';msgEl.textContent='⚠ Completa todos los campos';return}
+  if(pass.length<6){msgEl.style.color='var(--red)';msgEl.textContent='⚠ La contraseña debe tener mínimo 6 caracteres';return}
+
+  // Generate internal email from name
+  const email=nombre.toLowerCase().replace(/\s+/g,'.').replace(/[^a-z0-9.]/g,'')+'.'+Date.now()+'@lunaperla.app';
+
+  showSpinner('Creando usuario…');
+  try{
+    const r=await fetch(`${SUPABASE_URL}/auth/v1/admin/users`,{
+      method:'POST',
+      headers:{
+        'apikey':SUPABASE_KEY,
+        'Authorization':`Bearer ${currentUser.access_token}`,
+        'Content-Type':'application/json'
+      },
+      body:JSON.stringify({email,password:pass,email_confirm:true})
     });
-    const users = await r.json();
-    document.getElementById('users-count-lbl').textContent = users.length + ' usuarios';
-    const rolOptions = ['admin','editor','solo_lectura'];
-    const rolLabel = { admin:'Admin', editor:'Editor', solo_lectura:'Solo lectura' };
-    document.getElementById('usersTable').innerHTML = `
+    const data=await r.json();
+    if(!r.ok) throw new Error(data.msg||data.message||'Error al crear usuario');
+
+    await fetch(`${SUPABASE_URL}/rest/v1/perfiles`,{
+      method:'POST',
+      headers:{...headers,'Prefer':'return=representation'},
+      body:JSON.stringify({id:data.id,email,nombre,rol,activo:true})
+    });
+
+    document.getElementById('newUserNombre').value='';
+    document.getElementById('newUserPass').value='';
+    document.getElementById('newUserRol').value='solo_lectura';
+    msgEl.style.color='var(--green)';
+    msgEl.textContent='✓ Usuario creado correctamente';
+    renderUsuarios();
+  }catch(e){
+    msgEl.style.color='var(--red)';
+    msgEl.textContent='⚠ '+e.message;
+  }finally{hideSpinner()}
+}
+
+async function renderUsuarios(){
+  document.getElementById('users-count-lbl').textContent='…';
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/perfiles?select=*&order=created_at.asc`,{
+      headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${currentUser.access_token}`}
+    });
+    const users=await r.json();
+    document.getElementById('users-count-lbl').textContent=users.length+' usuarios';
+    const rolLabel={admin:'Admin',editor:'Editor',solo_lectura:'Solo lectura'};
+    document.getElementById('usersTable').innerHTML=`
       <table style="width:100%;border-collapse:collapse">
         <thead><tr style="background:var(--bg2)">
-          <th style="padding:10px 16px;text-align:left;font-size:0.68rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted)">Usuario</th>
-          <th style="padding:10px 16px;text-align:left;font-size:0.68rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted)">Email</th>
+          <th style="padding:10px 16px;text-align:left;font-size:0.68rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted)">Nombre</th>
+          <th style="padding:10px 16px;text-align:left;font-size:0.68rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted)">Correo</th>
           <th style="padding:10px 16px;text-align:center;font-size:0.68rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted)">Rol</th>
           <th style="padding:10px 16px;text-align:center;font-size:0.68rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted)">Estado</th>
           <th style="padding:10px 16px;text-align:center;font-size:0.68rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted)">Acciones</th>
         </tr></thead>
-        <tbody>${users.map(u => `
+        <tbody>${users.map(u=>`
           <tr style="border-bottom:1px solid var(--border);transition:background 0.1s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
-            <td style="padding:13px 16px;font-size:0.84rem;font-weight:500">${u.nombre||'—'}</td>
+            <td style="padding:13px 16px;font-size:0.84rem;font-weight:500">${u.nombre||'—'} ${u.id===currentPerfil.id?'<span style="font-size:0.65rem;color:var(--muted)">(tú)</span>':''}</td>
             <td style="padding:13px 16px;font-size:0.78rem;color:var(--muted)">${u.email}</td>
             <td style="padding:13px 16px;text-align:center">
               <select onchange="updateUserRole('${u.id}',this.value)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:'Barlow',sans-serif;font-size:0.78rem;padding:4px 8px;outline:none;cursor:pointer" ${u.id===currentPerfil.id?'disabled':''}>
-                ${rolOptions.map(r=>`<option value="${r}" ${u.rol===r?'selected':''}>${rolLabel[r]}</option>`).join('')}
+                <option value="admin" ${u.rol==='admin'?'selected':''}>Admin</option>
+                <option value="editor" ${u.rol==='editor'?'selected':''}>Editor</option>
+                <option value="solo_lectura" ${u.rol==='solo_lectura'?'selected':''}>Solo lectura</option>
               </select>
             </td>
             <td style="padding:13px 16px;text-align:center">
-              <button onclick="toggleUserActive('${u.id}',${u.activo})" style="padding:4px 12px;border-radius:20px;border:1px solid;font-size:0.7rem;font-weight:600;cursor:pointer;background:transparent;font-family:'Barlow',sans-serif;${u.activo?'color:var(--green);border-color:rgba(0,255,157,0.3)':'color:var(--red);border-color:rgba(255,77,109,0.3)'}" ${u.id===currentPerfil.id?'disabled':''}>
+              <button onclick="toggleUserActive('${u.id}',${u.activo})" style="padding:4px 14px;border-radius:20px;border:1px solid;font-size:0.7rem;font-weight:600;cursor:pointer;background:transparent;font-family:'Barlow',sans-serif;${u.activo?'color:var(--green);border-color:rgba(0,255,157,0.3)':'color:var(--red);border-color:rgba(255,77,109,0.3)'}" ${u.id===currentPerfil.id?'disabled':''}>
                 ${u.activo?'● Activo':'○ Inactivo'}
               </button>
             </td>
             <td style="padding:13px 16px;text-align:center">
-              <span style="font-size:0.7rem;color:var(--muted2)">${u.id===currentPerfil.id?'(tú)':''}</span>
+              ${u.id!==currentPerfil.id?`<button onclick="eliminarUsuario('${u.id}','${u.email}')" class="iBtn del" title="Eliminar usuario" style="margin:0 auto">✕</button>`:'—'}
             </td>
           </tr>`).join('')}
         </tbody>
       </table>`;
-  } catch(e) { toast('Error cargando usuarios: '+e.message); }
+  }catch(e){toast('Error cargando usuarios: '+e.message)}
 }
 
-async function updateUserRole(userId, newRole) {
-  try {
-    await fetch(`${SUPABASE_URL}/rest/v1/perfiles?id=eq.${userId}`, {
-      method: 'PATCH',
-      headers: { ...authHeaders(), 'Prefer': 'return=representation' },
-      body: JSON.stringify({ rol: newRole })
+async function updateUserRole(userId,newRole){
+  try{
+    await fetch(`${SUPABASE_URL}/rest/v1/perfiles?id=eq.${userId}`,{
+      method:'PATCH',
+      headers:{...headers,'Prefer':'return=representation'},
+      body:JSON.stringify({rol:newRole})
     });
     toast('✓ Rol actualizado');
-  } catch(e) { toast('Error: '+e.message); }
+  }catch(e){toast('Error: '+e.message)}
 }
 
-async function toggleUserActive(userId, currentActive) {
-  try {
-    await fetch(`${SUPABASE_URL}/rest/v1/perfiles?id=eq.${userId}`, {
-      method: 'PATCH',
-      headers: { ...authHeaders(), 'Prefer': 'return=representation' },
-      body: JSON.stringify({ activo: !currentActive })
+async function toggleUserActive(userId,currentActive){
+  try{
+    await fetch(`${SUPABASE_URL}/rest/v1/perfiles?id=eq.${userId}`,{
+      method:'PATCH',
+      headers:{...headers,'Prefer':'return=representation'},
+      body:JSON.stringify({activo:!currentActive})
     });
-    toast(currentActive ? 'Usuario desactivado' : 'Usuario activado');
+    toast(currentActive?'Usuario desactivado':'Usuario activado');
     renderUsuarios();
-  } catch(e) { toast('Error: '+e.message); }
+  }catch(e){toast('Error: '+e.message)}
+}
+
+async function eliminarUsuario(userId,email){
+  if(!confirm(`¿Eliminar el usuario ${email}? Esta acción no se puede deshacer.`))return;
+  showSpinner('Eliminando usuario…');
+  try{
+    // Delete profile first
+    await fetch(`${SUPABASE_URL}/rest/v1/perfiles?id=eq.${userId}`,{
+      method:'DELETE',headers
+    });
+    // Delete auth user
+    await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`,{
+      method:'DELETE',
+      headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${currentUser.access_token}`}
+    });
+    toast('✓ Usuario eliminado');
+    renderUsuarios();
+  }catch(e){toast('Error: '+e.message)}
+  finally{hideSpinner()}
 }
 
 // ── Toast ─────────────────────────────────────────────────
