@@ -399,11 +399,19 @@ tbody tr:hover .racts{opacity:1}
     transform:translateX(-100%);
     transition:transform 0.28s cubic-bezier(0.4,0,0.2,1);
     z-index:9999;
-    box-shadow:4px 0 32px rgba(0,0,0,0.7);
+    background:#0d1018 !important;
+    box-shadow:8px 0 40px rgba(0,0,0,0.9);
     top:0;left:0;bottom:0;
+    width:260px;
   }
   .sidebar.open{transform:translateX(0)}
   .sidebar-overlay{z-index:9998}
+  .sidebar *{opacity:1 !important;visibility:visible !important}
+  .nav-item{color:#5a6072 !important}
+  .nav-item:hover{color:#eef0f5 !important;background:var(--surface) !important}
+  .nav-item.active{color:var(--cyan) !important;background:var(--cyan-dim) !important}
+  .logo-name{color:#eef0f5 !important}
+  .user-name{color:#eef0f5 !important}
   .main{margin-left:0;max-width:100%}
   .topbar,.content{padding-left:16px;padding-right:16px}
   .topbar{padding-top:14px;padding-bottom:14px;z-index:40}
