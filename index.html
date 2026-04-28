@@ -365,135 +365,85 @@ tbody tr:hover .racts{opacity:1}
 }
 .logout-btn:hover{color:var(--red);border-color:rgba(255,77,109,0.3);background:var(--red-dim)}
 
+/* ── Hamburger / Mobile Sidebar ── */
+.hamburger{
+  display:none;
+  width:36px;height:36px;
+  background:var(--surface);
+  border:1px solid var(--border2);
+  border-radius:8px;
+  align-items:center;justify-content:center;
+  cursor:pointer;flex-direction:column;gap:4px;
+  padding:8px;flex-shrink:0;
+}
+
+.hamburger span{
+  display:block;width:18px;height:2px;
+  background:var(--muted);border-radius:2px;
+  transition:all 0.2s;
+}
+
+.sidebar-overlay{
+  display:none;
+  position:fixed;inset:0;
+  background:rgba(0,0,0,0.6);
+  backdrop-filter:blur(4px);
+  z-index:49;
+}
+
+.sidebar-overlay.open{display:block}
+
 @media(max-width:1024px){
-  .sidebar{display:none}
+  .sidebar{
+    display:flex;
+    transform:translateX(-100%);
+    transition:transform 0.28s cubic-bezier(0.4,0,0.2,1);
+    z-index:50;
+  }
+  .sidebar.open{transform:none}
   .main{margin-left:0;max-width:100%}
   .topbar,.content{padding-left:16px;padding-right:16px}
   .topbar{padding-top:14px;padding-bottom:14px}
-  .content{padding-top:20px;padding-bottom:90px}
-  .mobile-nav{display:flex}
+  .content{padding-top:20px;padding-bottom:20px}
+  .hamburger{display:flex}
+  .mobile-nav{display:none!important}
 }
 
 @media(max-width:700px){
-  /* Topbar */
   .page-heading{font-size:1.3rem}
   .page-date{display:none}
   .topbar-right .btn-ghost{display:none}
   .btn-primary{padding:8px 14px;font-size:0.78rem}
-
-  /* Cards — 2 columnas */
   .cards{grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
-  .card{padding:14px}
-  .card-value{font-size:1.4rem}
-  .card-meta{font-size:0.68rem}
-
-  /* Table — scroll horizontal en vez de ocultar columnas */
+  .card{padding:14px}.card-value{font-size:1.4rem}.card-meta{font-size:0.68rem}
   .section{overflow-x:auto}
   table{min-width:520px}
   th,td{padding:10px 12px!important;font-size:0.78rem}
   .racts{opacity:1}
-
-  /* Section header */
   .section-header{flex-direction:column;align-items:stretch;gap:8px;padding:12px}
-  .search-box{min-width:unset}
-  .filter-sel{width:100%}
+  .search-box{min-width:unset}.filter-sel{width:100%}
   .section-title{font-size:0.85rem}
-
-  /* Modales — drawer desde abajo */
   .overlay{align-items:flex-end}
-  .modal{
-    width:100%!important;max-width:100%!important;
-    border-radius:20px 20px 0 0;
-    position:fixed;bottom:0;left:0;right:0;
-    max-height:95vh;
-  }
-  .modal-body{padding:18px 16px 24px}
-  .modal-top{padding:16px 18px}
+  .modal{width:100%!important;max-width:100%!important;border-radius:20px 20px 0 0;position:fixed;bottom:0;left:0;right:0;max-height:95vh}
+  .modal-body{padding:18px 16px 24px}.modal-top{padding:16px 18px}
   .fgrid{grid-template-columns:1fr}
-
-  /* Dashboard */
   .dash-grid{grid-template-columns:1fr;gap:12px;margin-top:16px}
   .dash-full{grid-column:1}
   .dash-panel{padding:16px}
-  .panel-title{font-size:0.7rem;margin-bottom:14px}
-  .bar-label{width:50px;font-size:0.7rem}
-  .bar-val{width:70px;font-size:0.72rem}
-
-  /* Donut — horizontal en móvil */
+  .bar-label{width:50px;font-size:0.7rem}.bar-val{width:70px;font-size:0.72rem}
   .donut-wrap{gap:16px}
-  .donut-svg{width:90px;height:90px}
-
-  /* Stat row */
   .stat-row{grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
-  .stat-box{padding:12px 10px}
-  .stat-val{font-size:1.1rem}
-  .stat-lbl{font-size:0.6rem}
-
-  /* Recent list */
-  .ri-name{font-size:0.78rem}
-  .ri-amt{font-size:0.85rem}
-
-  /* Overdue */
-  .ov-name{font-size:0.78rem}
-  .ov-amt{font-size:0.82rem}
-
-  /* Pager */
+  .stat-box{padding:12px 10px}.stat-val{font-size:1.1rem}.stat-lbl{font-size:0.6rem}
+  .dash-panel{padding:14px}
   .pager{flex-direction:column;gap:8px;align-items:center;padding:10px}
-  .pager-info{font-size:0.7rem}
-
-  /* Usuarios panel */
-  #view-usuarios .fgrid,
-  #view-usuarios div[style*="grid-template-columns"]{
-    grid-template-columns:1fr!important;
-  }
-
-  /* Lightbox */
-  .lightbox img{max-width:96vw;max-height:80vh}
-  .lb-label{font-size:0.68rem;padding:5px 12px}
 }
 
 @media(max-width:420px){
   .cards{grid-template-columns:1fr;gap:8px}
-  .content{padding:12px 12px 90px}
+  .content{padding:12px 12px 20px}
   .card-value{font-size:1.3rem}
   .stat-row{grid-template-columns:1fr}
-  .topbar{padding:10px 12px}
-  .page-heading{font-size:1.2rem}
   table{min-width:460px}
-}
-
-/* Bottom nav móvil */
-.mobile-nav{
-  display:none;
-  position:fixed;bottom:0;left:0;right:0;
-  background:var(--bg2);
-  border-top:1px solid var(--border);
-  padding:6px 0 calc(6px + env(safe-area-inset-bottom));
-  z-index:100;
-  justify-content:space-around;
-  align-items:center;
-}
-
-.mobile-nav-btn{
-  display:flex;flex-direction:column;align-items:center;gap:2px;
-  background:none;border:none;color:var(--muted);
-  font-family:'Barlow',sans-serif;font-size:0.55rem;letter-spacing:0.5px;
-  cursor:pointer;padding:6px 8px;border-radius:8px;
-  transition:all 0.15s;min-width:48px;
-}
-
-.mobile-nav-btn.active{color:var(--cyan)}
-.mobile-nav-btn.active .mn-icon{
-  background:var(--cyan-dim);
-  border-radius:8px;
-}
-
-.mn-icon{
-  font-size:1.3rem;
-  width:32px;height:32px;
-  display:flex;align-items:center;justify-content:center;
-  border-radius:8px;
-  transition:all 0.15s;
 }
 </style>
 </head>
@@ -561,8 +511,9 @@ tbody tr:hover .racts{opacity:1}
   <div class="spinner-text" id="spinnerText">Cargando…</div>
 </div>
 
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
 <div class="layout">
-<aside class="sidebar">
+<aside class="sidebar" id="sidebar">
   <div class="sidebar-logo">
     <div class="logo-mark"><div class="logo-icon">🌙</div><div class="logo-name">LUNA DE PERLA</div></div>
     <div class="logo-sub">Pago Facturas</div>
@@ -591,7 +542,11 @@ tbody tr:hover .racts{opacity:1}
 
 <div class="main">
   <div class="topbar">
-    <div class="page-heading"><span id="pageTitle">Facturas</span><span class="page-date" id="todayDate"></span></div>
+    <div class="page-heading">
+      <button class="hamburger" onclick="toggleSidebar()"><span></span><span></span><span></span></button>
+      <span id="pageTitle">Facturas</span>
+      <span class="page-date" id="todayDate"></span>
+    </div>
     <div class="topbar-right">
       <button class="btn btn-ghost" onclick="exportCSV()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -1254,6 +1209,7 @@ function navigate(view,btn){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   const el=document.getElementById('view-'+view);if(el)el.classList.add('active');
   document.getElementById('pageTitle').textContent=pageTitles[view]||view;
+  closeSidebar();
   if(view==='dashboard') renderDashboard();
   if(view==='reportes') renderReportes();
   if(view==='proveedores') renderProveedores();
@@ -1469,6 +1425,18 @@ async function doLogin() {
     errEl.textContent = e.message;
     errEl.classList.add('show');
   } finally { hideSpinner(); }
+}
+
+function toggleSidebar(){
+  const s=document.getElementById('sidebar');
+  const o=document.getElementById('sidebarOverlay');
+  s.classList.toggle('open');
+  o.classList.toggle('open');
+}
+
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('open');
 }
 
 function mobileNav(btn){
