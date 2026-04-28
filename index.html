@@ -365,9 +365,58 @@ tbody tr:hover .racts{opacity:1}
 }
 .logout-btn:hover{color:var(--red);border-color:rgba(255,77,109,0.3);background:var(--red-dim)}
 
-@media(max-width:1024px){.sidebar{display:none}.main{margin-left:0;max-width:100%}.topbar,.content{padding-left:20px;padding-right:20px}}
-@media(max-width:700px){.cards{grid-template-columns:1fr 1fr}th:nth-child(n+4),td:nth-child(n+4){display:none}.fgrid{grid-template-columns:1fr}}
-@media(max-width:420px){.cards{grid-template-columns:1fr}}
+@media(max-width:1024px){
+  .sidebar{display:none}
+  .main{margin-left:0;max-width:100%}
+  .topbar,.content{padding-left:16px;padding-right:16px}
+  .topbar{padding-top:14px;padding-bottom:14px}
+  .content{padding-top:20px;padding-bottom:80px}
+  .mobile-nav{display:flex}
+}
+
+@media(max-width:700px){
+  .cards{grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+  .card{padding:16px}.card-value{font-size:1.5rem}
+  .page-heading{font-size:1.4rem}.page-date{display:none}
+  .topbar-right .btn-ghost{display:none}
+  .btn-primary{padding:8px 14px;font-size:0.78rem}
+  th:nth-child(n+3),td:nth-child(n+3){display:none}
+  th:nth-child(1),td:nth-child(1){padding:12px 10px}
+  th:nth-child(2),td:nth-child(2){padding:12px 10px}
+  .section-header{flex-direction:column;align-items:stretch;gap:8px;padding:12px}
+  .search-box{min-width:unset}.filter-sel{width:100%}
+  .overlay{align-items:flex-end}
+  .modal{width:100%!important;max-width:100%!important;border-radius:16px 16px 0 0;position:fixed;bottom:0;left:0;right:0;max-height:92vh}
+  .modal-body{padding:20px}.modal-top{padding:18px 20px}
+  .fgrid{grid-template-columns:1fr}
+  .dash-grid{grid-template-columns:1fr;gap:12px;margin-top:16px}
+  .stat-row{grid-template-columns:1fr 1fr}.stat-box{padding:12px}.stat-val{font-size:1.1rem}
+  .dash-panel{padding:16px}
+  .pager{flex-direction:column;gap:8px;align-items:center;padding:12px}
+}
+
+@media(max-width:420px){
+  .cards{grid-template-columns:1fr}
+  .content{padding:14px 12px 80px}
+  .card-value{font-size:1.3rem}
+  .stat-row{grid-template-columns:1fr}
+}
+
+/* Bottom nav móvil */
+.mobile-nav{
+  display:none;position:fixed;bottom:0;left:0;right:0;
+  background:var(--bg2);border-top:1px solid var(--border);
+  padding:8px 0 calc(8px + env(safe-area-inset-bottom));
+  z-index:100;justify-content:space-around;
+}
+.mobile-nav-btn{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  background:none;border:none;color:var(--muted);
+  font-family:'Barlow',sans-serif;font-size:0.58rem;
+  cursor:pointer;padding:4px 10px;border-radius:8px;transition:all 0.15s;
+}
+.mobile-nav-btn.active{color:var(--cyan)}
+.mn-icon{font-size:1.2rem}
 </style>
 </head>
 <body>
@@ -615,6 +664,25 @@ tbody tr:hover .racts{opacity:1}
   </div><!-- /content -->
 </div><!-- /main -->
 </div><!-- /layout -->
+
+<!-- Mobile bottom nav -->
+<nav class="mobile-nav" id="mobileNav">
+  <button class="mobile-nav-btn active" onclick="navigate('facturas',this);mobileNav(this)">
+    <span class="mn-icon">▤</span>Facturas
+  </button>
+  <button class="mobile-nav-btn" onclick="navigate('dashboard',this);mobileNav(this)">
+    <span class="mn-icon">◈</span>Dashboard
+  </button>
+  <button class="mobile-nav-btn" onclick="navigate('reportes',this);mobileNav(this)">
+    <span class="mn-icon">◎</span>Reportes
+  </button>
+  <button class="mobile-nav-btn" onclick="navigate('proveedores',this);mobileNav(this)">
+    <span class="mn-icon">◷</span>Proveedores
+  </button>
+  <button class="mobile-nav-btn" id="mobileNavUsuarios" style="display:none" onclick="navigate('usuarios',this);mobileNav(this)">
+    <span class="mn-icon">👥</span>Usuarios
+  </button>
+</nav>
 
 <!-- Modal Factura -->
 <div class="overlay" id="overlay" onclick="closeOnOverlay(event)">
@@ -1325,6 +1393,11 @@ async function doLogin() {
   } finally { hideSpinner(); }
 }
 
+function mobileNav(btn){
+  document.querySelectorAll('.mobile-nav-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
 function onLoginSuccess() {
   // Update sidebar
   const nombre = currentPerfil.nombre || currentPerfil.email;
@@ -1335,7 +1408,9 @@ function onLoginSuccess() {
   const isAdmin = currentPerfil.rol === 'admin';
   const canEdit = currentPerfil.rol === 'admin' || currentPerfil.rol === 'editor';
   document.getElementById('navUsuarios').style.display = isAdmin ? 'flex' : 'none';
-  if (!canEdit) document.querySelector('.btn-primary').style.display = 'none';
+  if(isAdmin) document.getElementById('mobileNavUsuarios').style.display='flex';
+  // Solo ocultar botón Nueva Factura para solo_lectura
+  if(!canEdit) document.querySelector('.btn-primary').style.display = 'none';
   Object.assign(headers, { 'Authorization': `Bearer ${currentUser.access_token}` });
   document.getElementById('loginScreen').style.display = 'none';
   loadInvoices();
