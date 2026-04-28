@@ -1378,34 +1378,41 @@ async function crearUsuario(){
   if(!nombre||!pass){msgEl.style.color='var(--red)';msgEl.textContent='⚠ Completa todos los campos';return}
   if(pass.length<6){msgEl.style.color='var(--red)';msgEl.textContent='⚠ La contraseña debe tener mínimo 6 caracteres';return}
 
-  // Generate internal email from name
+  // Generate internal email from name + timestamp
   const email=nombre.toLowerCase().replace(/\s+/g,'.').replace(/[^a-z0-9.]/g,'')+'.'+Date.now()+'@lunaperla.app';
 
   showSpinner('Creando usuario…');
   try{
-    const r=await fetch(`${SUPABASE_URL}/auth/v1/admin/users`,{
+    // Use signup endpoint (works with anon key)
+    const r=await fetch(`${SUPABASE_URL}/auth/v1/signup`,{
       method:'POST',
-      headers:{
-        'apikey':SUPABASE_KEY,
-        'Authorization':`Bearer ${currentUser.access_token}`,
-        'Content-Type':'application/json'
-      },
-      body:JSON.stringify({email,password:pass,email_confirm:true})
+      headers:{'apikey':SUPABASE_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({email,password:pass})
     });
     const data=await r.json();
     if(!r.ok) throw new Error(data.msg||data.message||'Error al crear usuario');
 
-    await fetch(`${SUPABASE_URL}/rest/v1/perfiles`,{
+    const userId=data.user?.id||data.id;
+    if(!userId) throw new Error('No se obtuvo el ID del usuario');
+
+    // Insert profile with anon key
+    const r2=await fetch(`${SUPABASE_URL}/rest/v1/perfiles`,{
       method:'POST',
-      headers:{...headers,'Prefer':'return=representation'},
-      body:JSON.stringify({id:data.id,email,nombre,rol,activo:true})
+      headers:{
+        'apikey':SUPABASE_KEY,
+        'Authorization':`Bearer ${SUPABASE_KEY}`,
+        'Content-Type':'application/json',
+        'Prefer':'return=representation'
+      },
+      body:JSON.stringify({id:userId,email,nombre,rol,activo:true})
     });
+    if(!r2.ok){const e2=await r2.json();throw new Error(e2.message||'Error al guardar perfil')}
 
     document.getElementById('newUserNombre').value='';
     document.getElementById('newUserPass').value='';
     document.getElementById('newUserRol').value='solo_lectura';
     msgEl.style.color='var(--green)';
-    msgEl.textContent='✓ Usuario creado correctamente';
+    msgEl.textContent='✓ Usuario "'+nombre+'" creado correctamente';
     renderUsuarios();
   }catch(e){
     msgEl.style.color='var(--red)';
