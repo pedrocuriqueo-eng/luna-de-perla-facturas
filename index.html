@@ -769,14 +769,18 @@ tbody tr:hover .racts{opacity:1}
         <div class="fld"><label>Fecha Vencimiento</label><input type="date" id="fVencimiento"/></div>
         <div class="fld fspan"><label>Notas</label><textarea id="fNota" placeholder="Descripción o concepto…"></textarea></div>
         <div class="fld fspan">
-          <label>Foto de la factura</label>
+          <label>Foto / PDF de la factura</label>
           <div id="uploadZone" class="upload-zone">
-            <input type="file" id="fFoto" accept="image/*" onchange="handlePhoto(event)"/>
+            <input type="file" id="fFoto" accept="image/*,application/pdf" onchange="handlePhoto(event)"/>
             <span class="upload-icon">📎</span>
-            <div class="upload-text">Arrastra una imagen o <span>haz clic para subir</span><br/>JPG, PNG, WEBP — máx. 5MB</div>
+            <div class="upload-text">Imagen o PDF — <span>haz clic para subir</span><br/>JPG, PNG, WEBP, PDF — máx. 10MB</div>
           </div>
           <div id="previewWrap" class="preview-wrap" style="display:none;margin-top:8px">
-            <img id="previewImg" src="" alt="Vista previa"/>
+            <img id="previewImg" src="" alt="Vista previa" style="display:none"/>
+            <div id="previewPdf" style="display:none;padding:14px 16px;align-items:center;gap:10px">
+              <span style="font-size:1.8rem">📄</span>
+              <div><div id="previewPdfName" style="font-size:0.82rem;font-weight:500;color:var(--text)"></div><div style="font-size:0.7rem;color:var(--muted);margin-top:2px">Archivo PDF adjunto</div></div>
+            </div>
             <button class="preview-remove" onclick="removePhoto()">✕</button>
           </div>
         </div>
@@ -809,14 +813,21 @@ tbody tr:hover .racts{opacity:1}
       </div>
       <div class="fld" style="margin-bottom:14px"><label>N° Comprobante / Referencia</label><input type="text" id="payRef" placeholder="Ej: TRF-2024-00123"/></div>
       <div class="fld">
-        <label>Comprobante de pago (imagen)</label>
+        <label>Comprobante de pago (imagen o PDF)</label>
         <div id="payUploadZone" class="upload-zone">
-          <input type="file" id="payFoto" accept="image/*" onchange="handlePayPhoto(event)"/>
+          <input type="file" id="payFoto" accept="image/*,application/pdf" onchange="handlePayPhoto(event)"/>
           <span class="upload-icon">🧾</span>
-          <div class="upload-text">Sube el comprobante de pago<br/><span>JPG, PNG, WEBP — máx. 5MB</span></div>
+          <div class="upload-text">Sube el comprobante de pago<br/><span>JPG, PNG, WEBP o PDF — máx. 10MB</span></div>
         </div>
         <div id="payPreviewWrap" class="preview-wrap" style="display:none;margin-top:8px">
-          <img id="payPreviewImg" src="" alt="Comprobante"/>
+          <img id="payPreviewImg" src="" alt="Comprobante" style="display:none"/>
+          <div id="payPreviewPdf" style="display:none;padding:14px 16px;display:none;align-items:center;gap:10px">
+            <span style="font-size:1.8rem">📄</span>
+            <div>
+              <div id="payPdfName" style="font-size:0.82rem;font-weight:500;color:var(--text)"></div>
+              <div style="font-size:0.7rem;color:var(--muted);margin-top:2px">Archivo PDF adjunto</div>
+            </div>
+          </div>
           <button class="preview-remove" onclick="removePayPhoto()">✕</button>
         </div>
       </div>
@@ -1007,6 +1018,10 @@ function renderTable() {
     tbody.innerHTML = slice.map(i => {
       const fotoUrl = imgUrl(i.foto_path);
       const compUrl = i.pago && i.pago.comprobante_path ? imgUrl(i.pago.comprobante_path) : null;
+      const fotoIsPdf = i.foto_path && i.foto_path.toLowerCase().endsWith('.pdf');
+      const compIsPdf = i.pago && i.pago.comprobante_path && i.pago.comprobante_path.toLowerCase().endsWith('.pdf');
+      const fotoThumb = fotoUrl ? (fotoIsPdf ? `<div class="thumb" onclick="openLightbox('${i.id}','foto')" title="Ver PDF" style="display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.2rem;border:1px solid var(--border2);border-radius:6px;background:var(--surface2);width:36px;height:36px">📄</div>` : `<img class="thumb" src="${fotoUrl}" onclick="openLightbox('${i.id}','foto')" title="Ver factura"/>`) : `<div class="no-img" title="Sin imagen">◈</div>`;
+      const compThumb = compUrl ? (compIsPdf ? `<div class="thumb" onclick="openLightbox('${i.id}','pago')" title="Ver PDF comprobante" style="display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.2rem;border:1px solid rgba(0,255,157,0.4);border-radius:6px;background:var(--green-dim);width:36px;height:36px">📄</div>` : `<img class="thumb" src="${compUrl}" onclick="openLightbox('${i.id}','pago')" title="Ver comprobante" style="border-color:rgba(0,255,157,0.4)"/>`) : (i.estado==='pagada'?`<div class="no-img" title="Sin comprobante" style="border-color:rgba(0,255,157,0.2)">✓</div>`:'');
       return `<tr>
         <td><div class="num">${i.numero}</div></td>
         <td><div class="pname">${i.proveedor}</div><div class="prut">${i.rut||''}</div></td>
@@ -1019,8 +1034,8 @@ function renderTable() {
         </td>
         <td>
           <div style="display:flex;gap:4px;align-items:center">
-            ${fotoUrl?`<img class="thumb" src="${fotoUrl}" onclick="openLightbox('${i.id}','foto')" title="Ver factura"/>`:`<div class="no-img" title="Sin imagen">◈</div>`}
-            ${compUrl?`<img class="thumb" src="${compUrl}" onclick="openLightbox('${i.id}','pago')" title="Ver comprobante" style="border-color:rgba(0,255,157,0.4)"/>`:i.estado==='pagada'?`<div class="no-img" title="Sin comprobante" style="border-color:rgba(0,255,157,0.2)">✓</div>`:''}
+            ${fotoThumb}
+            ${compThumb}
           </div>
         </td>
         <td><div class="racts">
@@ -1203,42 +1218,66 @@ async function confirmPay(){
 // ── Photo handlers ────────────────────────────────────────
 function handlePhoto(e){
   const file=e.target.files[0];if(!file)return;
-  if(file.size>5*1024*1024){toast('La imagen supera 5MB');return}
+  if(file.size>10*1024*1024){toast('El archivo supera 10MB');return}
   currentPhotoFile=file;
-  const reader=new FileReader();
-  reader.onload=ev=>{
-    document.getElementById('previewImg').src=ev.target.result;
-    document.getElementById('uploadZone').style.display='none';
-    document.getElementById('previewWrap').style.display='block';
-  };
-  reader.readAsDataURL(file);
+  const isPdf=file.type==='application/pdf';
+  document.getElementById('uploadZone').style.display='none';
+  document.getElementById('previewWrap').style.display='block';
+  if(isPdf){
+    document.getElementById('previewImg').style.display='none';
+    const pdfDiv=document.getElementById('previewPdf');
+    pdfDiv.style.display='flex';
+    document.getElementById('previewPdfName').textContent=file.name;
+  } else {
+    document.getElementById('previewPdf').style.display='none';
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      const img=document.getElementById('previewImg');
+      img.src=ev.target.result;img.style.display='block';
+    };
+    reader.readAsDataURL(file);
+  }
 }
 
 function removePhoto(){
   currentPhotoFile=null;
   document.getElementById('fFoto').value='';
   document.getElementById('previewImg').src='';
+  document.getElementById('previewImg').style.display='none';
+  document.getElementById('previewPdf').style.display='none';
   document.getElementById('previewWrap').style.display='none';
   document.getElementById('uploadZone').style.display='block';
 }
 
 function handlePayPhoto(e){
   const file=e.target.files[0];if(!file)return;
-  if(file.size>5*1024*1024){toast('La imagen supera 5MB');return}
+  if(file.size>10*1024*1024){toast('El archivo supera 10MB');return}
   currentPayPhotoFile=file;
-  const reader=new FileReader();
-  reader.onload=ev=>{
-    document.getElementById('payPreviewImg').src=ev.target.result;
-    document.getElementById('payUploadZone').style.display='none';
-    document.getElementById('payPreviewWrap').style.display='block';
-  };
-  reader.readAsDataURL(file);
+  const isPdf=file.type==='application/pdf';
+  document.getElementById('payUploadZone').style.display='none';
+  document.getElementById('payPreviewWrap').style.display='block';
+  if(isPdf){
+    document.getElementById('payPreviewImg').style.display='none';
+    const pdfDiv=document.getElementById('payPreviewPdf');
+    pdfDiv.style.display='flex';
+    document.getElementById('payPdfName').textContent=file.name;
+  } else {
+    document.getElementById('payPreviewPdf').style.display='none';
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      const img=document.getElementById('payPreviewImg');
+      img.src=ev.target.result;img.style.display='block';
+    };
+    reader.readAsDataURL(file);
+  }
 }
 
 function removePayPhoto(){
   currentPayPhotoFile=null;
   document.getElementById('payFoto').value='';
   document.getElementById('payPreviewImg').src='';
+  document.getElementById('payPreviewImg').style.display='none';
+  document.getElementById('payPreviewPdf').style.display='none';
   document.getElementById('payPreviewWrap').style.display='none';
   document.getElementById('payUploadZone').style.display='block';
 }
@@ -1248,6 +1287,10 @@ function openLightbox(id, tipo='foto'){
   const inv=invoices.find(i=>i.id===id);if(!inv)return;
   const url=tipo==='pago'?imgUrl(inv.pago&&inv.pago.comprobante_path):imgUrl(inv.foto_path);
   if(!url)return;
+  // If PDF, open in new tab
+  if(url.toLowerCase().includes('.pdf')||url.includes('%2F') && inv[tipo==='pago'?'pago':'foto_path']?.endsWith('.pdf')){
+    window.open(url,'_blank');return;
+  }
   document.getElementById('lbImg').src=url;
   document.getElementById('lbLabel').textContent=tipo==='pago'?`Comprobante · ${inv.numero} — ${inv.proveedor}`:`Factura · ${inv.numero} — ${inv.proveedor}`;
   document.getElementById('lightbox').classList.add('open');
