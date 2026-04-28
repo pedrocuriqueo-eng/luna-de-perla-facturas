@@ -365,59 +365,50 @@ tbody tr:hover .racts{opacity:1}
 }
 .logout-btn:hover{color:var(--red);border-color:rgba(255,77,109,0.3);background:var(--red-dim)}
 
-/* ── Hamburger / Mobile Sidebar ── */
-.hamburger{
+/* ── Mobile Bottom Tab Bar ── */
+.tab-bar{
   display:none;
-  width:36px;height:36px;
-  background:var(--surface);
-  border:1px solid var(--border2);
-  border-radius:8px;
-  align-items:center;justify-content:center;
-  cursor:pointer;flex-direction:column;gap:4px;
-  padding:8px;flex-shrink:0;
+  position:fixed;
+  bottom:0;left:0;right:0;
+  height:64px;
+  background:#0d1018;
+  border-top:1px solid rgba(255,255,255,0.1);
+  z-index:9999;
+  flex-direction:row;
+  align-items:stretch;
+  padding-bottom:env(safe-area-inset-bottom);
 }
 
-.hamburger span{
-  display:block;width:18px;height:2px;
-  background:var(--muted);border-radius:2px;
-  transition:all 0.2s;
+.tab-btn{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:3px;
+  background:none;
+  border:none;
+  color:#5a6072;
+  cursor:pointer;
+  padding:6px 4px;
+  font-family:'Barlow',sans-serif;
+  font-size:0.58rem;
+  letter-spacing:0.3px;
+  transition:color 0.15s;
+  -webkit-tap-highlight-color:transparent;
 }
 
-.sidebar-overlay{
-  display:none;
-  position:fixed;inset:0;
-  background:rgba(0,0,0,0.65);
-  backdrop-filter:blur(3px);
-  z-index:199;
-}
-
-.sidebar-overlay.open{display:block}
+.tab-btn .tb-icon{font-size:1.3rem;line-height:1}
+.tab-btn.active{color:#00e5ff}
 
 @media(max-width:1024px){
-  .sidebar{
-    display:flex;
-    transform:translateX(-100%);
-    transition:transform 0.28s cubic-bezier(0.4,0,0.2,1);
-    z-index:9999;
-    background:#0d1018 !important;
-    box-shadow:8px 0 40px rgba(0,0,0,0.9);
-    top:0;left:0;bottom:0;
-    width:260px;
-  }
-  .sidebar.open{transform:translateX(0)}
-  .sidebar-overlay{z-index:9998}
-  .sidebar *{opacity:1 !important;visibility:visible !important}
-  .nav-item{color:#5a6072 !important}
-  .nav-item:hover{color:#eef0f5 !important;background:var(--surface) !important}
-  .nav-item.active{color:var(--cyan) !important;background:var(--cyan-dim) !important}
-  .logo-name{color:#eef0f5 !important}
-  .user-name{color:#eef0f5 !important}
+  .sidebar{display:none !important}
   .main{margin-left:0;max-width:100%}
   .topbar,.content{padding-left:16px;padding-right:16px}
-  .topbar{padding-top:14px;padding-bottom:14px;z-index:40}
-  .content{padding-top:20px;padding-bottom:20px}
-  .hamburger{display:flex}
-  .mobile-nav{display:none!important}
+  .topbar{padding-top:14px;padding-bottom:14px}
+  .content{padding-top:20px;padding-bottom:76px}
+  .tab-bar{display:flex}
+  .hamburger{display:none !important}
 }
 
 @media(max-width:700px){
@@ -440,18 +431,17 @@ tbody tr:hover .racts{opacity:1}
   .fgrid{grid-template-columns:1fr}
   .dash-grid{grid-template-columns:1fr;gap:12px;margin-top:16px}
   .dash-full{grid-column:1}
-  .dash-panel{padding:16px}
-  .bar-label{width:50px;font-size:0.7rem}.bar-val{width:70px;font-size:0.72rem}
-  .donut-wrap{gap:16px}
+  .dash-panel{padding:14px}
+  .bar-label{width:48px;font-size:0.7rem}.bar-val{width:68px;font-size:0.72rem}
+  .donut-wrap{gap:14px}
   .stat-row{grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
   .stat-box{padding:12px 10px}.stat-val{font-size:1.1rem}.stat-lbl{font-size:0.6rem}
-  .dash-panel{padding:14px}
   .pager{flex-direction:column;gap:8px;align-items:center;padding:10px}
 }
 
 @media(max-width:420px){
   .cards{grid-template-columns:1fr;gap:8px}
-  .content{padding:12px 12px 20px}
+  .content{padding:12px 12px 76px}
   .card-value{font-size:1.3rem}
   .stat-row{grid-template-columns:1fr}
   table{min-width:460px}
@@ -522,7 +512,6 @@ tbody tr:hover .racts{opacity:1}
   <div class="spinner-text" id="spinnerText">Cargando…</div>
 </div>
 
-<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
 <div class="layout">
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-logo">
@@ -554,7 +543,6 @@ tbody tr:hover .racts{opacity:1}
 <div class="main">
   <div class="topbar">
     <div class="page-heading">
-      <button class="hamburger" onclick="toggleSidebar()"><span></span><span></span><span></span></button>
       <span id="pageTitle">Facturas</span>
       <span class="page-date" id="todayDate"></span>
     </div>
@@ -709,22 +697,22 @@ tbody tr:hover .racts{opacity:1}
 </div><!-- /main -->
 </div><!-- /layout -->
 
-<!-- Mobile bottom nav -->
-<nav class="mobile-nav" id="mobileNav">
-  <button class="mobile-nav-btn active" onclick="navigate('facturas',this);mobileNav(this)">
-    <span class="mn-icon">▤</span>Facturas
+<!-- Tab bar móvil -->
+<nav class="tab-bar" id="tabBar">
+  <button class="tab-btn active" id="tab-facturas" onclick="navigateTab('facturas',this)">
+    <span class="tb-icon">▤</span>Facturas
   </button>
-  <button class="mobile-nav-btn" onclick="navigate('dashboard',this);mobileNav(this)">
-    <span class="mn-icon">◈</span>Dashboard
+  <button class="tab-btn" id="tab-dashboard" onclick="navigateTab('dashboard',this)">
+    <span class="tb-icon">◈</span>Dashboard
   </button>
-  <button class="mobile-nav-btn" onclick="navigate('reportes',this);mobileNav(this)">
-    <span class="mn-icon">◎</span>Reportes
+  <button class="tab-btn" id="tab-reportes" onclick="navigateTab('reportes',this)">
+    <span class="tb-icon">◎</span>Reportes
   </button>
-  <button class="mobile-nav-btn" onclick="navigate('proveedores',this);mobileNav(this)">
-    <span class="mn-icon">◷</span>Proveedores
+  <button class="tab-btn" id="tab-proveedores" onclick="navigateTab('proveedores',this)">
+    <span class="tb-icon">🏢</span>Proveed.
   </button>
-  <button class="mobile-nav-btn" id="mobileNavUsuarios" style="display:none" onclick="navigate('usuarios',this);mobileNav(this)">
-    <span class="mn-icon">👥</span>Usuarios
+  <button class="tab-btn" id="tab-usuarios" style="display:none" onclick="navigateTab('usuarios',this)">
+    <span class="tb-icon">👥</span>Usuarios
   </button>
 </nav>
 
@@ -1438,22 +1426,27 @@ async function doLogin() {
   } finally { hideSpinner(); }
 }
 
-function toggleSidebar(){
-  const s=document.getElementById('sidebar');
-  const o=document.getElementById('sidebarOverlay');
-  s.classList.toggle('open');
-  o.classList.toggle('open');
+function navigateTab(view, btn){
+  // Update tab bar
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  // Also update sidebar nav
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  const sideNav=document.querySelector(`.nav-item[onclick*="'${view}'"]`);
+  if(sideNav) sideNav.classList.add('active');
+  // Show view
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  const el=document.getElementById('view-'+view);if(el)el.classList.add('active');
+  document.getElementById('pageTitle').textContent=pageTitles[view]||view;
+  if(view==='dashboard') renderDashboard();
+  if(view==='reportes') renderReportes();
+  if(view==='proveedores') renderProveedores();
+  if(view==='usuarios') renderUsuarios();
 }
 
-function closeSidebar(){
-  document.getElementById('sidebar').classList.remove('open');
-  document.getElementById('sidebarOverlay').classList.remove('open');
-}
-
-function mobileNav(btn){
-  document.querySelectorAll('.mobile-nav-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-}
+function toggleSidebar(){}
+function closeSidebar(){}
+function mobileNav(){}
 
 function onLoginSuccess() {
   // Update sidebar
@@ -1465,7 +1458,8 @@ function onLoginSuccess() {
   const isAdmin = currentPerfil.rol === 'admin';
   const canEdit = currentPerfil.rol === 'admin' || currentPerfil.rol === 'editor';
   document.getElementById('navUsuarios').style.display = isAdmin ? 'flex' : 'none';
-  if(isAdmin) document.getElementById('mobileNavUsuarios').style.display='flex';
+  const tabU=document.getElementById('tab-usuarios');
+  if(tabU) tabU.style.display = isAdmin ? 'flex' : 'none';
   // Solo ocultar botón Nueva Factura para solo_lectura
   if(!canEdit) document.querySelector('.btn-primary').style.display = 'none';
   Object.assign(headers, { 'Authorization': `Bearer ${currentUser.access_token}` });
