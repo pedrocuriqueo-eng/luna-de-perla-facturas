@@ -365,7 +365,41 @@ tbody tr:hover .racts{opacity:1}
 }
 .logout-btn:hover{color:var(--red);border-color:rgba(255,77,109,0.3);background:var(--red-dim)}
 
-/* ── Mobile Bottom Tab Bar ── */
+/* ── Sync indicator ── */
+.sync-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:5px 12px;border-radius:20px;
+  font-family:'Barlow',sans-serif;font-size:0.72rem;font-weight:500;
+  transition:all 0.3s;
+}
+.sync-badge.synced{
+  background:rgba(0,255,157,0.1);
+  color:#00ff9d;
+  border:1px solid rgba(0,255,157,0.25);
+}
+.sync-badge.syncing{
+  background:rgba(255,179,64,0.1);
+  color:#ffb340;
+  border:1px solid rgba(255,179,64,0.25);
+}
+.sync-badge.error{
+  background:rgba(255,77,109,0.1);
+  color:#ff4d6d;
+  border:1px solid rgba(255,77,109,0.25);
+}
+.sync-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:currentColor;flex-shrink:0;
+}
+.sync-badge.syncing .sync-dot{
+  animation:pulse 1s ease-in-out infinite;
+}
+@keyframes pulse{
+  0%,100%{opacity:1;transform:scale(1)}
+  50%{opacity:0.4;transform:scale(0.7)}
+}
+@media(max-width:700px){.sync-badge span.sync-text{display:none}}
+
 .tab-bar{
   display:none;
   position:fixed;
@@ -547,6 +581,10 @@ tbody tr:hover .racts{opacity:1}
       <span class="page-date" id="todayDate"></span>
     </div>
     <div class="topbar-right">
+      <div class="sync-badge synced" id="syncBadge">
+        <span class="sync-dot"></span>
+        <span class="sync-text">Sincronizado</span>
+      </div>
       <button class="btn btn-ghost" onclick="exportCSV()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Exportar CSV
@@ -878,6 +916,26 @@ const PAGE = 10;
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 
+// ── Sync indicator ────────────────────────────────────────
+function setSyncing(){
+  const b=document.getElementById('syncBadge');
+  if(!b)return;
+  b.className='sync-badge syncing';
+  b.innerHTML='<span class="sync-dot"></span><span class="sync-text">Sincronizando…</span>';
+}
+function setSynced(){
+  const b=document.getElementById('syncBadge');
+  if(!b)return;
+  b.className='sync-badge synced';
+  b.innerHTML='<span class="sync-dot"></span><span class="sync-text">Sincronizado</span>';
+}
+function setSyncError(){
+  const b=document.getElementById('syncBadge');
+  if(!b)return;
+  b.className='sync-badge error';
+  b.innerHTML='<span class="sync-dot"></span><span class="sync-text">Sin conexión</span>';
+}
+
 // ── Spinner ───────────────────────────────────────────────
 function showSpinner(msg='Cargando…') {
   document.getElementById('spinnerText').textContent = msg;
@@ -895,9 +953,12 @@ const fmtD = d => { if(!d) return '—'; const [y,m,dd]=d.split('-'); return`${d
 
 async function loadInvoices() {
   showSpinner('Cargando facturas…');
+  setSyncing();
   try {
     invoices = await dbGet('facturas');
+    setSynced();
   } catch(e) {
+    setSyncError();
     toast('Error al conectar con Supabase: ' + e.message);
     console.error(e);
   } finally {
@@ -1038,6 +1099,7 @@ async function saveInvoice(){
   if(!numero||!proveedor||!monto||!fecha_emision){toast('Completa los campos obligatorios');return}
 
   showSpinner(editingId?'Actualizando…':'Guardando…');
+  setSyncing();
   try {
     // Upload photo to Storage if new file selected
     let foto_path = editingId ? (invoices.find(i=>i.id===editingId)||{}).foto_path : null;
@@ -1061,8 +1123,10 @@ async function saveInvoice(){
       toast('Factura agregada');
     }
   } catch(e){
+    setSyncError();
     toast('Error: '+e.message);console.error(e);
   } finally {
+    setSynced();
     hideSpinner();closeModal();renderTable();
   }
 }
