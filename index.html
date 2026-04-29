@@ -767,14 +767,20 @@ tbody tr:hover .racts{opacity:1}
             <input type="password" id="cfgToken" placeholder="••••••••"/>
           </div>
           <div class="fld">
-            <label>Número WhatsApp destino</label>
-            <input type="text" id="cfgTo" placeholder="+56912345678"/>
-          </div>
-          <div class="fld">
             <label>Número Twilio (Sandbox)</label>
             <input type="text" id="cfgFrom" placeholder="+14155238886" value="+14155238886"/>
           </div>
         </div>
+
+        <!-- Números destino -->
+        <div class="fld" style="margin-bottom:16px">
+          <label>Números WhatsApp destino</label>
+          <div id="numerosDestino" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px"></div>
+          <button class="btn btn-ghost" onclick="agregarNumero()" style="width:fit-content;font-size:0.78rem">
+            + Agregar número
+          </button>
+        </div>
+
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
           <button class="btn btn-primary" onclick="guardarConfigAlerta()">💾 Guardar configuración</button>
           <button class="btn btn-ghost" onclick="enviarAlertasAhora()">📲 Enviar alertas ahora</button>
@@ -1813,8 +1819,139 @@ async function eliminarUsuario(userId){
 // Pre-fill credentials
 const TWILIO_SID_DEFAULT  = 'AC5f7881199d4bd98ff8832b70331456d4';
 const TWILIO_TOKEN_DEFAULT = '09d6f14b28f7db1a7adcd73883769b59';
-const WHATSAPP_TO_DEFAULT  = '+56920732525';
+const WHATSAPP_TO_DEFAULT  = ['+56920732525'];
 const WHATSAPP_FROM_DEFAULT = '+14155238886';
+
+function agregarNumero(valor=''){
+  const wrap=document.getElementById('numerosDestino');
+  const idx=wrap.children.length;
+  const div=document.createElement('div');
+  div.style.cssText='display:flex;gap:8px;align-items:center';
+  div.innerHTML=`
+    <input type="text" value="${valor}" placeholder="+56912345678" style="flex:1;padding:9px 13px;border:1px solid var(--border2);border-radius:var(--r-sm);background:var(--bg2);color:var(--text);font-family:'Barlow',sans-serif;font-size:0.84rem;outline:none;" class="num-input" oninput="this.style.borderColor='var(--cyan)'"/>
+    <button onclick="this.parentElement.remove()" style="width:32px;height:36px;border-radius:6px;border:1px solid rgba(255,77,109,0.3);background:var(--red-dim);color:var(--red);cursor:pointer;font-size:0.85rem;flex-shrink:0">✕</button>
+  `;
+  wrap.appendChild(div);
+}
+
+function getNumeros(){
+  return Array.from(document.querySelectorAll('.num-input'))
+    .map(i=>i.value.trim())
+    .filter(v=>v.startsWith('+')&&v.length>8);
+}
+
+async function renderAlertas(){
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/alertas_config?select=*&limit=1`,{
+      headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}
+    });
+    const data=await r.json();
+    // Clear existing numbers
+    document.getElementById('numerosDestino').innerHTML='';
+
+    if(Array.isArray(data)&&data.length){
+      const cfg=data[0];
+      document.getElementById('cfgSid').value=cfg.twilio_sid||TWILIO_SID_DEFAULT;
+      document.getElementById('cfgToken').value=cfg.twilio_token||TWILIO_TOKEN_DEFAULT;
+      document.getElementById('cfgFrom').value=(cfg.whatsapp_from||WHATSAPP_FROM_DEFAULT).replace('whatsapp:','');
+      // Load multiple numbers
+      const numeros=Array.isArray(cfg.whatsapp_to)?cfg.whatsapp_to:[cfg.whatsapp_to];
+      numeros.forEach(n=>agregarNumero(n));
+      const lista=numeros.join(', ');
+      document.getElementById('alertaStatus').innerHTML=`<span style="color:var(--green)">✓ Configuración activa</span> — Alertas enviadas a <strong>${lista}</strong>`;
+    } else {
+      document.getElementById('cfgSid').value=TWILIO_SID_DEFAULT;
+      document.getElementById('cfgToken').value=TWILIO_TOKEN_DEFAULT;
+      document.getElementById('cfgFrom').value=WHATSAPP_FROM_DEFAULT;
+      WHATSAPP_TO_DEFAULT.forEach(n=>agregarNumero(n));
+      document.getElementById('alertaStatus').innerHTML=`<span style="color:var(--amber)">⚠ Configuración precargada — guarda para activar</span>`;
+    }
+  }catch(e){
+    document.getElementById('alertaStatus').innerHTML=`<span style="color:var(--red)">✕ Error cargando config</span>`;
+    WHATSAPP_TO_DEFAULT.forEach(n=>agregarNumero(n));
+  }
+  renderAlertasList();
+}
+
+function renderAlertasList(){
+  const tomorrow=new Date();
+  tomorrow.setDate(tomorrow.getDate()+1);
+  const tStr=tomorrow.toISOString().slice(0,10);
+  const proximas=invoices.filter(i=>i.fecha_vencimiento===tStr&&i.estado==='pendiente');
+  document.getElementById('alertaCount').textContent=proximas.length?`${proximas.length} factura${proximas.length!==1?'s':''}`:'' ;
+  if(!proximas.length){
+    document.getElementById('alertasList').innerHTML=`<div style="padding:24px 0;text-align:center;color:var(--muted);font-size:0.82rem">🎉 No hay facturas que venzan mañana</div>`;
+    return;
+  }
+  document.getElementById('alertasList').innerHTML=proximas.map(i=>`
+    <div style="display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--border)">
+      <div style="flex:1">
+        <div style="font-size:0.84rem;font-weight:500">${i.proveedor}</div>
+        <div style="font-size:0.72rem;color:var(--muted);margin-top:2px">${i.numero} · Vence: ${fmtD(i.fecha_vencimiento)}</div>
+      </div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:600;color:var(--amber)">${CLP(i.monto)}</div>
+    </div>`).join('');
+}
+
+async function guardarConfigAlerta(){
+  const sid=document.getElementById('cfgSid').value.trim();
+  const token=document.getElementById('cfgToken').value.trim();
+  const from='whatsapp:'+document.getElementById('cfgFrom').value.trim();
+  const numeros=getNumeros();
+  const msgEl=document.getElementById('alertaMsg');
+  if(!sid||!token||!numeros.length){msgEl.style.color='var(--red)';msgEl.textContent='⚠ Completa todos los campos y agrega al menos un número';return}
+
+  showSpinner('Guardando configuración…');
+  try{
+    await fetch(`${SUPABASE_URL}/rest/v1/alertas_config`,{
+      method:'DELETE',
+      headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'}
+    });
+    await fetch(`${SUPABASE_URL}/rest/v1/alertas_config`,{
+      method:'POST',
+      headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':'return=representation'},
+      body:JSON.stringify({twilio_sid:sid,twilio_token:token,whatsapp_to:numeros,whatsapp_from:from,activo:true})
+    });
+    msgEl.style.color='var(--green)';msgEl.textContent='✓ Configuración guardada';
+    document.getElementById('alertaStatus').innerHTML=`<span style="color:var(--green)">✓ Configuración activa</span> — Alertas enviadas a <strong>${numeros.join(', ')}</strong>`;
+  }catch(e){
+    msgEl.style.color='var(--red)';msgEl.textContent='⚠ '+e.message;
+  }finally{hideSpinner()}
+}
+
+async function enviarAlertasAhora(){
+  const sid=document.getElementById('cfgSid').value.trim();
+  const token=document.getElementById('cfgToken').value.trim();
+  const from=document.getElementById('cfgFrom').value.trim();
+  const numeros=getNumeros();
+  const msgEl=document.getElementById('alertaMsg');
+  if(!sid||!token||!numeros.length){msgEl.style.color='var(--red)';msgEl.textContent='⚠ Guarda la configuración primero';return}
+
+  const tomorrow=new Date();
+  tomorrow.setDate(tomorrow.getDate()+1);
+  const tStr=tomorrow.toISOString().slice(0,10);
+  const proximas=invoices.filter(i=>i.fecha_vencimiento===tStr&&i.estado==='pendiente');
+
+  if(!proximas.length){msgEl.style.color='var(--amber)';msgEl.textContent='ℹ No hay facturas que venzan mañana';return}
+
+  showSpinner('Enviando alertas…');
+  try{
+    let enviadas=0;
+    for(const inv of proximas){
+      const mensaje=`🌙 *Luna de Perla — Alerta de Vencimiento*\n\n⚠️ La factura *${inv.numero}* de *${inv.proveedor}* vence mañana.\n\n💰 Monto: *${CLP(inv.monto)}*\n📅 Vencimiento: *${fmtD(inv.fecha_vencimiento)}*\n\nPor favor gestiona el pago a tiempo.`;
+      for(const num of numeros){
+        await enviarMensajeWhatsApp(sid,token,from,num,mensaje);
+        enviadas++;
+      }
+    }
+    msgEl.style.color='var(--green)';
+    msgEl.textContent=`✓ ${enviadas} mensaje${enviadas!==1?'s':''} enviado${enviadas!==1?'s':''} por WhatsApp`;
+    toast('✓ Alertas enviadas por WhatsApp');
+  }catch(e){
+    msgEl.style.color='var(--red)';
+    msgEl.textContent='⚠ Error: '+e.message;
+  }finally{hideSpinner()}
+}
 
 async function renderAlertas(){
   // Load saved config from Supabase
@@ -1968,9 +2105,13 @@ async function checkAlertasAuto(){
     const today=new Date().toISOString().slice(0,10);
     if(lastSent===today)return;
     // Send alerts
+    // Send alerts to all numbers
+    const numeros=Array.isArray(cfg.whatsapp_to)?cfg.whatsapp_to:[cfg.whatsapp_to];
     for(const inv of proximas){
       const mensaje=`🌙 *Luna de Perla — Alerta de Vencimiento*\n\n⚠️ La factura *${inv.numero}* de *${inv.proveedor}* vence mañana.\n\n💰 Monto: *${CLP(inv.monto)}*\n📅 Vencimiento: *${fmtD(inv.fecha_vencimiento)}*\n\nPor favor gestiona el pago a tiempo.`;
-      await enviarMensajeWhatsApp(cfg.twilio_sid,cfg.twilio_token,cfg.whatsapp_from,'whatsapp:'+cfg.whatsapp_to.replace('whatsapp:',''),mensaje);
+      for(const num of numeros){
+        await enviarMensajeWhatsApp(cfg.twilio_sid,cfg.twilio_token,cfg.whatsapp_from.replace('whatsapp:',''),num,mensaje);
+      }
     }
     localStorage.setItem('alertas_last_sent',today);
     if(proximas.length) toast(`🔔 ${proximas.length} alerta${proximas.length!==1?'s':''} de vencimiento enviada${proximas.length!==1?'s':''}`);
