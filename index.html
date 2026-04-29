@@ -1867,7 +1867,7 @@ async function renderAlertas(){
       document.getElementById('alertaStatus').innerHTML=`<span style="color:var(--amber)">⚠ Configuración precargada — guarda para activar</span>`;
     }
   }catch(e){
-    document.getElementById('alertaStatus').innerHTML=`<span style="color:var(--red)">✕ Error cargando config</span>`;
+    document.getElementById('alertaStatus').innerHTML=`<span style="color:var(--amber)">⚠ Sin configuración guardada — completa los campos y guarda</span>`;
     WHATSAPP_TO_DEFAULT.forEach(n=>agregarNumero(n));
   }
   renderAlertasList();
