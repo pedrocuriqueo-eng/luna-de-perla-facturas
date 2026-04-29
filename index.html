@@ -570,7 +570,7 @@ tbody tr:hover .racts{opacity:1}
     <button class="nav-item" onclick="navigate('proveedores',this)"><span class="nav-icon">◷</span> Proveedores</button>
     <button class="nav-item" id="navUsuarios" style="display:none" onclick="navigate('usuarios',this)"><span class="nav-icon">👥</span> Usuarios</button>
     <button class="nav-item" id="navAlertas" style="display:none" onclick="navigate('alertas',this)"><span class="nav-icon">🔔</span> Alertas WhatsApp</button>
-    <button class="nav-item"><span class="nav-icon">◧</span> Categorías</button>
+    <button class="nav-item" onclick="navigate('categorias',this)"><span class="nav-icon">◧</span> Categorías</button>
   </nav>
   <div class="sidebar-footer">
     <div class="user-chip">
@@ -795,6 +795,37 @@ tbody tr:hover .racts{opacity:1}
       </div>
 
     </div><!-- /alertas -->
+
+    <!-- CATEGORIAS VIEW -->
+    <div class="view" id="view-categorias">
+
+      <!-- Crear categoría -->
+      <div class="dash-panel" style="margin-bottom:18px">
+        <div class="panel-title">Nueva categoría</div>
+        <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+          <div class="fld" style="flex:1;min-width:180px">
+            <label>Nombre *</label>
+            <input type="text" id="catNombre" placeholder="Ej: Compras, Gastos, Importaciones…" onkeydown="if(event.key==='Enter')crearCategoria()"/>
+          </div>
+          <div class="fld">
+            <label>Color</label>
+            <input type="color" id="catColor" value="#00e5ff" style="width:48px;height:38px;padding:2px;border:1px solid var(--border2);border-radius:var(--r-sm);background:var(--bg2);cursor:pointer"/>
+          </div>
+          <button class="btn btn-primary" onclick="crearCategoria()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Crear
+          </button>
+          <div id="catMsg" style="font-size:0.8rem;align-self:center"></div>
+        </div>
+      </div>
+
+      <!-- Lista de categorías -->
+      <div class="dash-panel">
+        <div class="panel-title">Categorías registradas <span id="catCount"></span></div>
+        <div id="catList"></div>
+      </div>
+
+    </div><!-- /categorias -->
 
   </div><!-- /content -->
 </div><!-- /main -->
@@ -1377,7 +1408,7 @@ function exportCSV(){
 }
 
 // ── Navigation ────────────────────────────────────────────
-const pageTitles={facturas:'Facturas',dashboard:'Dashboard',reportes:'Reportes',proveedores:'Proveedores',usuarios:'Gestión de Usuarios',alertas:'Alertas WhatsApp'};
+const pageTitles={facturas:'Facturas',dashboard:'Dashboard',reportes:'Reportes',proveedores:'Proveedores',usuarios:'Gestión de Usuarios',alertas:'Alertas WhatsApp',categorias:'Categorías'};
 function navigate(view,btn){
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
@@ -1390,6 +1421,7 @@ function navigate(view,btn){
   if(view==='proveedores') renderProveedores();
   if(view==='usuarios') renderUsuarios();
   if(view==='alertas') renderAlertas();
+  if(view==='categorias') renderCategorias();
 }
 
 // ── Dashboard ─────────────────────────────────────────────
@@ -1620,6 +1652,7 @@ function navigateTab(view, btn){
   if(view==='proveedores') renderProveedores();
   if(view==='usuarios') renderUsuarios();
   if(view==='alertas') renderAlertas();
+  if(view==='categorias') renderCategorias();
 }
 
 function toggleSidebar(){}
@@ -2043,6 +2076,78 @@ async function checkAlertasAuto(){
     localStorage.setItem('alertas_last_sent',today);
     if(proximas.length) toast(`🔔 ${proximas.length} alerta${proximas.length!==1?'s':''} de vencimiento enviada${proximas.length!==1?'s':''}`);
   }catch(e){console.warn('Auto-alerta error:',e.message)}
+}
+
+// ═══════════════════════════════════════════════════════════
+// CATEGORÍAS
+// ═══════════════════════════════════════════════════════════
+let categorias = [];
+
+async function renderCategorias(){
+  document.getElementById('catList').innerHTML='<div style="padding:20px 0;text-align:center;color:var(--muted);font-size:0.82rem">Cargando…</div>';
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/categorias?select=*&order=nombre.asc`,{
+      headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}
+    });
+    categorias=await r.json();
+    if(!Array.isArray(categorias)) throw new Error('Error cargando');
+    document.getElementById('catCount').textContent=categorias.length+' categorías';
+    if(!categorias.length){
+      document.getElementById('catList').innerHTML='<div style="padding:24px 0;text-align:center;color:var(--muted);font-size:0.82rem">No hay categorías aún — crea la primera</div>';
+      return;
+    }
+    document.getElementById('catList').innerHTML=`
+      <div style="display:flex;flex-wrap:wrap;gap:10px;padding-top:4px">
+        ${categorias.map(c=>`
+          <div style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:20px;border:1px solid ${c.color}33;background:${c.color}15;transition:all 0.15s">
+            <span style="width:10px;height:10px;border-radius:50%;background:${c.color};flex-shrink:0;display:inline-block"></span>
+            <span style="font-size:0.84rem;font-weight:500;color:var(--text)">${c.nombre}</span>
+            <button onclick="eliminarCategoria('${c.id}','${c.nombre}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.75rem;padding:0;margin-left:4px;line-height:1;transition:color 0.13s" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--muted)'">✕</button>
+          </div>`).join('')}
+      </div>`;
+  }catch(e){
+    document.getElementById('catList').innerHTML=`<div style="color:var(--red);font-size:0.82rem;padding:16px 0">Error: ${e.message}</div>`;
+  }
+}
+
+async function crearCategoria(){
+  const nombre=document.getElementById('catNombre').value.trim();
+  const color=document.getElementById('catColor').value;
+  const msgEl=document.getElementById('catMsg');
+  msgEl.textContent='';
+  if(!nombre){msgEl.style.color='var(--red)';msgEl.textContent='⚠ Ingresa un nombre';return}
+
+  showSpinner('Creando categoría…');
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/categorias`,{
+      method:'POST',
+      headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':'return=representation'},
+      body:JSON.stringify({nombre,color})
+    });
+    if(!r.ok){const e=await r.json();throw new Error(e.message||'Error creando')}
+    document.getElementById('catNombre').value='';
+    document.getElementById('catColor').value='#00e5ff';
+    msgEl.style.color='var(--green)';msgEl.textContent='✓ Categoría creada';
+    setTimeout(()=>msgEl.textContent='',2000);
+    renderCategorias();
+  }catch(e){
+    msgEl.style.color='var(--red)';
+    msgEl.textContent=e.message.includes('unique')?'⚠ Ya existe una categoría con ese nombre':'⚠ '+e.message;
+  }finally{hideSpinner()}
+}
+
+async function eliminarCategoria(id,nombre){
+  if(!confirm(`¿Eliminar la categoría "${nombre}"?`))return;
+  showSpinner('Eliminando…');
+  try{
+    await fetch(`${SUPABASE_URL}/rest/v1/categorias?id=eq.${id}`,{
+      method:'DELETE',
+      headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}
+    });
+    toast('✓ Categoría eliminada');
+    renderCategorias();
+  }catch(e){toast('Error: '+e.message)}
+  finally{hideSpinner()}
 }
 
 // ── Toast ─────────────────────────────────────────────────
