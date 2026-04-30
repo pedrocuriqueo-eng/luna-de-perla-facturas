@@ -2134,31 +2134,16 @@ async function enviarAlertaPagoConfirmado(inv){
       headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}
     });
     const data=await r.json();
-    if(!Array.isArray(data)||!data.length)return;
+    if(!Array.isArray(data)||!data.length){console.warn('Sin config de alertas');return;}
     const cfg=data[0];
     const numeros=Array.isArray(cfg.whatsapp_to)?cfg.whatsapp_to:[cfg.whatsapp_to];
     const from=cfg.whatsapp_from.replace('whatsapp:','');
     const fecha=inv.pago?.fecha||new Date().toISOString().slice(0,10);
     const mensaje=`🌙 *Luna de Perla — Pago Confirmado* ✅\n\n✔️ La factura *${inv.numero}* de *${inv.proveedor}* ha sido marcada como pagada.\n\n💰 Monto: *${CLP(inv.monto)}*\n📅 Fecha de pago: *${fmtD(fecha)}*${inv.pago?.metodo?'\n💳 Método: *'+inv.pago.metodo+'*':''}${inv.pago?.referencia?'\n🔖 Referencia: *'+inv.pago.referencia+'*':''}`;
     for(const num of numeros){
-      const res=await fetch(`${SUPABASE_URL}/functions/v1/enviar-whatsapp`,{
-        method:'POST',
-        headers:{
-          'Content-Type':'application/json',
-          'Authorization':`Bearer ${SUPABASE_KEY}`,
-          'apikey':SUPABASE_KEY
-        },
-        body:JSON.stringify({
-          sid:cfg.twilio_sid,
-          token:cfg.twilio_token,
-          from:'whatsapp:'+from,
-          to:'whatsapp:'+num.replace('whatsapp:',''),
-          body:mensaje
-        })
-      });
-      if(!res.ok){const e=await res.json();throw new Error(e.message||e.error||'Error')}
+      await enviarMensajeWhatsApp(cfg.twilio_sid,cfg.twilio_token,from,num,mensaje);
     }
-    console.log('✓ Alerta de pago enviada');
+    console.log('✓ Alerta de pago confirmado enviada');
   }catch(e){
     console.warn('Error enviando alerta de pago:',e.message);
   }
