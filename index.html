@@ -790,7 +790,7 @@ tbody tr:hover .racts{opacity:1}
 
       <!-- Facturas próximas a vencer -->
       <div class="dash-panel">
-        <div class="panel-title">Facturas que vencen mañana <span id="alertaCount"></span></div>
+        <div class="panel-title">Facturas que vencen hoy y mañana <span id="alertaCount"></span></div>
         <div id="alertasList"></div>
       </div>
 
@@ -1912,23 +1912,16 @@ async function renderAlertas(){
 }
 
 function renderAlertasList(){
-  const tomorrow=new Date();
-  tomorrow.setDate(tomorrow.getDate()+1);
+  const today=new Date().toISOString().slice(0,10);
+  const tomorrow=new Date();tomorrow.setDate(tomorrow.getDate()+1);
   const tStr=tomorrow.toISOString().slice(0,10);
-  const proximas=invoices.filter(i=>i.fecha_vencimiento===tStr&&i.estado==='pendiente');
-  document.getElementById('alertaCount').textContent=proximas.length?`${proximas.length} factura${proximas.length!==1?'s':''}`:'' ;
-  if(!proximas.length){
-    document.getElementById('alertasList').innerHTML=`<div style="padding:24px 0;text-align:center;color:var(--muted);font-size:0.82rem">🎉 No hay facturas que venzan mañana</div>`;
-    return;
-  }
-  document.getElementById('alertasList').innerHTML=proximas.map(i=>`
-    <div style="display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--border)">
-      <div style="flex:1">
-        <div style="font-size:0.84rem;font-weight:500">${i.proveedor}</div>
-        <div style="font-size:0.72rem;color:var(--muted);margin-top:2px">${i.numero} · Vence: ${fmtD(i.fecha_vencimiento)}</div>
-      </div>
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:600;color:var(--amber)">${CLP(i.monto)}</div>
-    </div>`).join('');
+  const hoy=invoices.filter(i=>i.fecha_vencimiento===today&&i.estado==='pendiente');
+  const manana=invoices.filter(i=>i.fecha_vencimiento===tStr&&i.estado==='pendiente');
+  const total=hoy.length+manana.length;
+  document.getElementById('alertaCount').textContent=total?`${total} factura${total!==1?'s':''}`:'' ;
+  if(!total){document.getElementById('alertasList').innerHTML=`<div style="padding:24px 0;text-align:center;color:var(--muted);font-size:0.82rem">🎉 No hay facturas que venzan hoy ni mañana</div>`;return;}
+  const rg=(lista,titulo,color)=>lista.length?`<div style="font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:${color};padding:12px 0 6px">${titulo}</div>${lista.map(i=>`<div style="display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--border)"><div style="flex:1"><div style="font-size:0.84rem;font-weight:500">${i.proveedor}</div><div style="font-size:0.72rem;color:var(--muted);margin-top:2px">${i.numero} · Vence: ${fmtD(i.fecha_vencimiento)}</div></div><div style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:600;color:${color}">${CLP(i.monto)}</div></div>`).join('')}`:'';
+  document.getElementById('alertasList').innerHTML=rg(hoy,'⚠ Vencen HOY','var(--red)')+rg(manana,'📅 Vencen MAÑANA','var(--amber)');
 }
 
 async function guardarConfigAlerta(){
@@ -1980,18 +1973,21 @@ async function enviarAlertasAhora(){
   const msgEl=document.getElementById('alertaMsg');
   if(!sid||!token||!numeros.length){msgEl.style.color='var(--red)';msgEl.textContent='⚠ Guarda la configuración primero';return}
 
-  const tomorrow=new Date();
-  tomorrow.setDate(tomorrow.getDate()+1);
+  const today=new Date().toISOString().slice(0,10);
+  const tomorrow=new Date();tomorrow.setDate(tomorrow.getDate()+1);
   const tStr=tomorrow.toISOString().slice(0,10);
-  const proximas=invoices.filter(i=>i.fecha_vencimiento===tStr&&i.estado==='pendiente');
+  const hoy=invoices.filter(i=>i.fecha_vencimiento===today&&i.estado==='pendiente');
+  const manana=invoices.filter(i=>i.fecha_vencimiento===tStr&&i.estado==='pendiente');
+  const proximas=[...hoy,...manana];
 
-  if(!proximas.length){msgEl.style.color='var(--amber)';msgEl.textContent='ℹ No hay facturas que venzan mañana';return}
+  if(!proximas.length){msgEl.style.color='var(--amber)';msgEl.textContent='ℹ No hay facturas que venzan hoy ni mañana';return}
 
   showSpinner('Enviando alertas…');
   try{
     let enviadas=0;
     for(const inv of proximas){
-      const mensaje=`🌙 *Luna de Perla — Alerta de Vencimiento*\n\n⚠️ La factura *${inv.numero}* de *${inv.proveedor}* vence mañana.\n\n💰 Monto: *${CLP(inv.monto)}*\n📅 Vencimiento: *${fmtD(inv.fecha_vencimiento)}*\n\nPor favor gestiona el pago a tiempo.`;
+      const esHoy=inv.fecha_vencimiento===today;
+      const mensaje=`🌙 *Luna de Perla — Alerta de Vencimiento*\n\n${esHoy?'🚨 La factura':'⚠️ La factura'} *${inv.numero}* de *${inv.proveedor}* vence *${esHoy?'HOY':'mañana'}*.\n\n💰 Monto: *${CLP(inv.monto)}*\n📅 Vencimiento: *${fmtD(inv.fecha_vencimiento)}*\n\nPor favor gestiona el pago a tiempo.`;
       for(const num of numeros){
         await enviarMensajeWhatsApp(sid,token,from,num,mensaje);
         enviadas++;
@@ -2004,26 +2000,6 @@ async function enviarAlertasAhora(){
     msgEl.style.color='var(--red)';
     msgEl.textContent='⚠ Error: '+e.message;
   }finally{hideSpinner()}
-}
-
-function renderAlertasList(){
-  const tomorrow=new Date();
-  tomorrow.setDate(tomorrow.getDate()+1);
-  const tStr=tomorrow.toISOString().slice(0,10);
-  const proximas=invoices.filter(i=>i.fecha_vencimiento===tStr&&i.estado==='pendiente');
-  document.getElementById('alertaCount').textContent=proximas.length?`${proximas.length} factura${proximas.length!==1?'s':''}`:'' ;
-  if(!proximas.length){
-    document.getElementById('alertasList').innerHTML=`<div style="padding:24px 0;text-align:center;color:var(--muted);font-size:0.82rem">🎉 No hay facturas que venzan mañana</div>`;
-    return;
-  }
-  document.getElementById('alertasList').innerHTML=proximas.map(i=>`
-    <div style="display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--border)">
-      <div style="flex:1">
-        <div style="font-size:0.84rem;font-weight:500">${i.proveedor}</div>
-        <div style="font-size:0.72rem;color:var(--muted);margin-top:2px">${i.numero} · Vence: ${fmtD(i.fecha_vencimiento)}</div>
-      </div>
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:600;color:var(--amber)">${CLP(i.monto)}</div>
-    </div>`).join('');
 }
 
 async function enviarMensajeWhatsApp(sid,token,from,to,mensaje){
