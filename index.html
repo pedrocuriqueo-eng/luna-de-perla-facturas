@@ -2136,29 +2136,15 @@ async function enviarAlertaPagoConfirmado(inv){
     const data=await r.json();
     if(!Array.isArray(data)||!data.length){console.warn('Sin config de alertas');return;}
     const cfg=data[0];
+    console.log('Config cargada:', cfg.twilio_sid, cfg.twilio_token?.slice(0,6)+'...');
     const numeros=Array.isArray(cfg.whatsapp_to)?cfg.whatsapp_to:[cfg.whatsapp_to];
-    const from='whatsapp:'+cfg.whatsapp_from.replace('whatsapp:','');
+    const from=cfg.whatsapp_from.replace('whatsapp:','');
     const fecha=inv.pago?.fecha||new Date().toISOString().slice(0,10);
     const mensaje=`🌙 *Luna de Perla — Pago Confirmado* ✅\n\n✔️ La factura *${inv.numero}* de *${inv.proveedor}* ha sido marcada como pagada.\n\n💰 Monto: *${CLP(inv.monto)}*\n📅 Fecha de pago: *${fmtD(fecha)}*${inv.pago?.metodo?'\n💳 Método: *'+inv.pago.metodo+'*':''}${inv.pago?.referencia?'\n🔖 Referencia: *'+inv.pago.referencia+'*':''}`;
-
-    // Call Twilio directly (same as panel alerts)
-    const url=`https://api.twilio.com/2010-04-01/Accounts/${cfg.twilio_sid}/Messages.json`;
-    const auth=btoa(`${cfg.twilio_sid}:${cfg.twilio_token}`);
-
     for(const num of numeros){
-      const to='whatsapp:'+num.replace('whatsapp:','');
-      const body=new URLSearchParams({From:from,To:to,Body:mensaje});
-      const res=await fetch(url,{
-        method:'POST',
-        headers:{
-          'Authorization':`Basic ${auth}`,
-          'Content-Type':'application/x-www-form-urlencoded'
-        },
-        body:body.toString()
-      });
-      const result=await res.json();
-      if(!res.ok) throw new Error(result.message||'Error Twilio');
-      console.log('✓ Alerta pago enviada a',num);
+      console.log('Enviando a:', num);
+      await enviarMensajeWhatsApp(cfg.twilio_sid, cfg.twilio_token, from, num, mensaje);
+      console.log('✓ Enviado a', num);
     }
   }catch(e){
     console.warn('Error enviando alerta de pago:',e.message);
