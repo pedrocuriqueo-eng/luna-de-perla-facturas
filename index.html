@@ -1310,6 +1310,8 @@ async function confirmPay(){
     const pago={fecha,metodo:document.getElementById('payMetodo').value,referencia:document.getElementById('payRef').value.trim(),comprobante_path};
     await dbUpdate('facturas',payingId,{estado:'pagada',pago});
     inv.estado='pagada';inv.pago=pago;
+    // Enviar alerta WhatsApp de pago confirmado
+    enviarAlertaPagoConfirmado(inv);
     toast('✓ Factura marcada como pagada');
   }catch(e){toast('Error: '+e.message);console.error(e)}
   finally{hideSpinner();closePayModal();renderTable()}
@@ -2124,6 +2126,25 @@ async function eliminarCategoria(id,nombre){
     renderCategorias();
   }catch(e){toast('Error: '+e.message)}
   finally{hideSpinner()}
+}
+
+async function enviarAlertaPagoConfirmado(inv){
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/alertas_config?select=*&activo=eq.true&limit=1`,{
+      headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}
+    });
+    const data=await r.json();
+    if(!Array.isArray(data)||!data.length)return;
+    const cfg=data[0];
+    const numeros=Array.isArray(cfg.whatsapp_to)?cfg.whatsapp_to:[cfg.whatsapp_to];
+    const from=cfg.whatsapp_from.replace('whatsapp:','');
+    const mensaje=`🌙 *Luna de Perla — Pago Confirmado* ✅\n\n✔️ La factura *${inv.numero}* de *${inv.proveedor}* ha sido marcada como pagada.\n\n💰 Monto: *${CLP(inv.monto)}*\n📅 Fecha de pago: *${fmtD(inv.pago?.fecha||new Date().toISOString().slice(0,10))}*${inv.pago?.metodo?' \n💳 Método: *'+inv.pago.metodo+'*':''} ${inv.pago?.referencia?'\n🔖 Referencia: *'+inv.pago.referencia+'*':''}`;
+    for(const num of numeros){
+      await enviarMensajeWhatsApp(cfg.twilio_sid,cfg.twilio_token,from,num,mensaje);
+    }
+  }catch(e){
+    console.warn('Error enviando alerta de pago:',e.message);
+  }
 }
 
 // ── Toast ─────────────────────────────────────────────────
