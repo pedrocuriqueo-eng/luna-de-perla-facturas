@@ -2005,22 +2005,21 @@ async function enviarAlertasAhora(){
 }
 
 async function enviarMensajeWhatsApp(sid,token,from,to,mensaje){
-  const r=await fetch(`${SUPABASE_URL}/functions/v1/enviar-whatsapp`,{
+  const url=`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`;
+  const auth=btoa(`${sid}:${token}`);
+  const to_num='whatsapp:'+to.replace('whatsapp:','');
+  const from_num='whatsapp:'+from.replace('whatsapp:','');
+  const body=new URLSearchParams({From:from_num,To:to_num,Body:mensaje});
+  const r=await fetch(url,{
     method:'POST',
     headers:{
-      'Content-Type':'application/json',
-      'Authorization':`Bearer ${SUPABASE_KEY}`,
-      'apikey':SUPABASE_KEY
+      'Authorization':`Basic ${auth}`,
+      'Content-Type':'application/x-www-form-urlencoded'
     },
-    body:JSON.stringify({
-      sid, token,
-      from:'whatsapp:'+from.replace('whatsapp:',''),
-      to:'whatsapp:'+to.replace('whatsapp:',''),
-      body:mensaje
-    })
+    body:body.toString()
   });
   const data=await r.json();
-  if(!r.ok) throw new Error(data.message||data.error||'Error Twilio');
+  if(!r.ok) throw new Error(data.message||'Error Twilio '+r.status);
   return data;
 }
 
