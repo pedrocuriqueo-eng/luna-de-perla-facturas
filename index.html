@@ -1933,34 +1933,33 @@ async function guardarConfigAlerta(){
   const numeros=getNumeros();
   const msgEl=document.getElementById('alertaMsg');
 
-  console.log('Guardando:', {sid,token:token?'ok':'vacío',numeros});
-
   if(!sid){msgEl.style.color='var(--red)';msgEl.textContent='⚠ Falta Account SID';return}
   if(!token){msgEl.style.color='var(--red)';msgEl.textContent='⚠ Falta Auth Token';return}
-  if(!numeros.length){
-    // Try getting any input value even without + prefix
-    const allInputs=Array.from(document.querySelectorAll('#numerosDestino input'));
-    if(!allInputs.length){msgEl.style.color='var(--red)';msgEl.textContent='⚠ Agrega al menos un número';return}
-    // Use raw values
-    const rawNums=allInputs.map(i=>i.value.trim()).filter(v=>v.length>6);
-    if(!rawNums.length){msgEl.style.color='var(--red)';msgEl.textContent='⚠ Ingresa un número válido con código de país (+56...)';return}
-    numeros.push(...rawNums);
-  }
+  const allInputs=Array.from(document.querySelectorAll('#numerosDestino input'));
+  const rawNums=allInputs.map(i=>i.value.trim()).filter(v=>v.length>6);
+  if(!rawNums.length){msgEl.style.color='var(--red)';msgEl.textContent='⚠ Agrega al menos un número';return}
+  const finalNums=numeros.length?numeros:rawNums;
 
   showSpinner('Guardando configuración…');
   try{
-    await fetch(`${SUPABASE_URL}/rest/v1/alertas_config`,{
+    // Delete ALL existing records first using SQL
+    await fetch(`${SUPABASE_URL}/rest/v1/alertas_config?activo=eq.true`,{
       method:'DELETE',
       headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'}
     });
+    await fetch(`${SUPABASE_URL}/rest/v1/alertas_config?activo=eq.false`,{
+      method:'DELETE',
+      headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'}
+    });
+    // Insert single new record
     const r=await fetch(`${SUPABASE_URL}/rest/v1/alertas_config`,{
       method:'POST',
       headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':'return=representation'},
-      body:JSON.stringify({twilio_sid:sid,twilio_token:token,whatsapp_to:numeros,whatsapp_from:from,activo:true})
+      body:JSON.stringify({twilio_sid:sid,twilio_token:token,whatsapp_to:finalNums,whatsapp_from:from,activo:true})
     });
     if(!r.ok){const e=await r.json();throw new Error(e.message||'Error guardando')}
     msgEl.style.color='var(--green)';msgEl.textContent='✓ Configuración guardada correctamente';
-    document.getElementById('alertaStatus').innerHTML=`<span style="color:var(--green)">✓ Configuración activa</span> — Alertas a: <strong>${numeros.join(', ')}</strong>`;
+    document.getElementById('alertaStatus').innerHTML=`<span style="color:var(--green)">✓ Configuración activa</span> — Alertas a: <strong>${finalNums.join(', ')}</strong>`;
   }catch(e){
     msgEl.style.color='var(--red)';msgEl.textContent='⚠ '+e.message;
     console.error('Error guardando config:', e);
