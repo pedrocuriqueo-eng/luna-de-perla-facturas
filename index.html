@@ -648,12 +648,61 @@ tbody tr:hover .racts{opacity:1}
 
     <!-- DASHBOARD VIEW -->
     <div class="view" id="view-dashboard">
-      <div class="stat-row">
-        <div class="stat-box"><div class="stat-val" id="db-total" style="color:var(--cyan)">$0</div><div class="stat-lbl">Monto total</div></div>
-        <div class="stat-box"><div class="stat-val" id="db-pct-paid" style="color:var(--green)">0%</div><div class="stat-lbl">Cobrado</div></div>
-        <div class="stat-box"><div class="stat-val" id="db-count" style="color:var(--amber)">0</div><div class="stat-lbl">Facturas totales</div></div>
+      <!-- KPI Row mejorado -->
+      <div class="stat-row" style="grid-template-columns:repeat(5,1fr)">
+        <div class="stat-box">
+          <div class="stat-val" id="db-total" style="color:var(--cyan)">$0</div>
+          <div class="stat-lbl">Monto total</div>
+          <div id="db-total-delta" style="font-size:0.68rem;margin-top:4px;color:var(--muted)"></div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="db-pct-paid" style="color:var(--green)">0%</div>
+          <div class="stat-lbl">Cobrado</div>
+          <div id="db-paid-amt" style="font-size:0.72rem;margin-top:4px;color:var(--green);opacity:0.8"></div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="db-pending-amt" style="color:var(--amber)">$0</div>
+          <div class="stat-lbl">Pendiente</div>
+          <div id="db-pending-count" style="font-size:0.68rem;margin-top:4px;color:var(--muted)"></div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="db-overdue-amt" style="color:var(--red)">$0</div>
+          <div class="stat-lbl">Vencido</div>
+          <div id="db-overdue-count" style="font-size:0.68rem;margin-top:4px;color:var(--muted)"></div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="db-count" style="color:var(--amber)">0</div>
+          <div class="stat-lbl">Facturas totales</div>
+          <div id="db-delta" style="font-size:0.68rem;margin-top:4px;color:var(--muted)"></div>
+        </div>
       </div>
+
+      <!-- Flujo de caja del mes -->
+      <div class="dash-panel" style="margin-bottom:0" id="cashflowPanel">
+        <div class="panel-title" style="display:flex;align-items:center;justify-content:space-between">
+          <span>💰 Flujo de caja — <span id="cashflow-mes"></span></span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:12px">
+          <div style="background:var(--green-dim);border:1px solid rgba(0,255,157,0.15);border-radius:var(--r-sm);padding:12px 16px">
+            <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--green);margin-bottom:6px">Pagado este mes</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.3rem;font-weight:700;color:var(--green)" id="cf-paid">$0</div>
+            <div style="font-size:0.68rem;color:var(--muted);margin-top:3px" id="cf-paid-count">0 facturas</div>
+          </div>
+          <div style="background:var(--amber-dim);border:1px solid rgba(255,179,64,0.15);border-radius:var(--r-sm);padding:12px 16px">
+            <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--amber);margin-bottom:6px">Por pagar este mes</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.3rem;font-weight:700;color:var(--amber)" id="cf-pending">$0</div>
+            <div style="font-size:0.68rem;color:var(--muted);margin-top:3px" id="cf-pending-count">0 facturas</div>
+          </div>
+          <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r-sm);padding:12px 16px">
+            <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:6px">Total del mes</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.3rem;font-weight:700;color:var(--text)" id="cf-total">$0</div>
+            <div style="font-size:0.68rem;color:var(--muted);margin-top:3px" id="cf-pct">0% pagado</div>
+          </div>
+        </div>
+      </div>
+
       <div class="dash-grid">
+        <!-- Donut -->
         <div class="dash-panel">
           <div class="panel-title">Distribución por estado</div>
           <div class="donut-wrap">
@@ -672,10 +721,55 @@ tbody tr:hover .racts{opacity:1}
             </div>
           </div>
         </div>
-        <div class="dash-panel"><div class="panel-title">Top proveedores <span id="top-prov-lbl"></span></div><div class="bar-chart" id="topProvChart"></div></div>
-        <div class="dash-panel dash-full"><div class="panel-title">Monto facturado por mes <span id="year-lbl"></span></div><div class="bar-chart" id="monthChart"></div></div>
-        <div class="dash-panel"><div class="panel-title">Últimas facturas registradas</div><div class="recent-list" id="recentList"></div></div>
-        <div class="dash-panel"><div class="panel-title">Vencidas y próximas a vencer</div><div class="overdue-list" id="overdueList"></div></div>
+
+        <!-- Top Proveedores mejorado -->
+        <div class="dash-panel">
+          <div class="panel-title" style="display:flex;align-items:center;justify-content:space-between">
+            <span>Top proveedores <span id="top-prov-lbl" style="color:var(--cyan);font-size:0.72rem"></span></span>
+          </div>
+          <div class="bar-chart" id="topProvChart"></div>
+        </div>
+
+        <!-- Gráfico mensual con selector de año y barras apiladas -->
+        <div class="dash-panel dash-full">
+          <div class="panel-title" style="display:flex;align-items:center;justify-content:space-between">
+            <span>Monto facturado por mes</span>
+            <div style="display:flex;align-items:center;gap:6px">
+              <button onclick="dashYr--;renderDashboard()" style="background:var(--surface2);border:1px solid var(--border2);color:var(--muted);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:0.8rem">‹</button>
+              <span id="year-lbl" style="font-size:0.82rem;color:var(--cyan);min-width:40px;text-align:center"></span>
+              <button onclick="dashYr++;renderDashboard()" style="background:var(--surface2);border:1px solid var(--border2);color:var(--muted);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:0.8rem">›</button>
+              <div style="display:flex;align-items:center;gap:10px;margin-left:12px;font-size:0.68rem;color:var(--muted)">
+                <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--green);margin-right:4px"></span>Pagadas</span>
+                <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--amber);margin-right:4px"></span>Pendientes</span>
+              </div>
+            </div>
+          </div>
+          <div class="bar-chart" id="monthChart"></div>
+        </div>
+
+        <!-- Últimas facturas con estado y link -->
+        <div class="dash-panel">
+          <div class="panel-title">Últimas facturas registradas</div>
+          <div class="recent-list" id="recentList"></div>
+        </div>
+
+        <!-- Vencidas con botón pagar -->
+        <div class="dash-panel">
+          <div class="panel-title" style="display:flex;align-items:center;justify-content:space-between">
+            <span>Vencidas y próximas a vencer</span>
+            <div style="display:flex;gap:8px;font-size:0.65rem">
+              <span style="color:var(--red)">● Vencidas</span>
+              <span style="color:var(--amber)">● Por vencer</span>
+            </div>
+          </div>
+          <div class="overdue-list" id="overdueList"></div>
+        </div>
+
+        <!-- Proveedores sin factura reciente -->
+        <div class="dash-panel dash-full">
+          <div class="panel-title">Proveedores sin factura reciente <span id="inactive-prov-lbl" style="color:var(--muted);font-size:0.72rem"></span></div>
+          <div id="inactiveProvList"></div>
+        </div>
       </div>
     </div>
 
@@ -1115,6 +1209,7 @@ let _lastUploadTs = null;
 // ═══════════════════════════════════════════════════════════
 let invoices = [];
 let editingId = null, sortField = 'created_at', sortDir = -1, page = 1;
+let dashYr = new Date().getFullYear();
 let currentPhotoFile = null, currentPhotoPreview = null;
 let currentPayPhotoFile = null;
 let currentCompFile = null;
@@ -1198,6 +1293,27 @@ function getFiltered() {
 }
 
 function sortBy(f){sortDir=sortField===f?-sortDir:-1;sortField=f;renderTable()}
+
+function goToInvoice(id){
+  showView('facturas');
+  // Clear filters to make sure invoice is visible
+  document.getElementById('searchInput').value='';
+  document.getElementById('filterStatus').value='';
+  document.getElementById('filterMonth').value='';
+  page=1; renderTable();
+  // Highlight the row after render
+  setTimeout(()=>{
+    const rows=document.querySelectorAll('#tableBody tr');
+    rows.forEach(r=>{
+      if(r.innerHTML.includes(id)){
+        r.style.outline='2px solid var(--cyan)';
+        r.style.outlineOffset='-1px';
+        r.scrollIntoView({behavior:'smooth',block:'center'});
+        setTimeout(()=>{r.style.outline='';r.style.outlineOffset='';},2500);
+      }
+    });
+  },100);
+}
 
 // ── Render table ──────────────────────────────────────────
 function renderTable() {
@@ -1721,13 +1837,34 @@ function renderDashboard(){
   const byS=s=>invoices.filter(i=>i.estado===s);
   const total=sumF(invoices);
   const paid=byS('pagada'),pend=byS('pendiente'),ov=byS('vencida');
+  const sumPaid=sumF(paid),sumPend=sumF(pend),sumOv=sumF(ov);
+
+  // ── KPIs ─────────────────────────────────────────────────
   document.getElementById('db-total').textContent=CLP(total);
-  document.getElementById('db-pct-paid').textContent=(total>0?Math.round(sumF(paid)/total*100):0)+'%';
+  document.getElementById('db-pct-paid').textContent=(total>0?Math.round(sumPaid/total*100):0)+'%';
+  document.getElementById('db-paid-amt').textContent=CLP(sumPaid);
+  document.getElementById('db-pending-amt').textContent=CLP(sumPend);
+  document.getElementById('db-pending-count').textContent=pend.length+' factura'+(pend.length!==1?'s':'');
+  document.getElementById('db-overdue-amt').textContent=CLP(sumOv);
+  document.getElementById('db-overdue-count').textContent=ov.length+' factura'+(ov.length!==1?'s':'');
   document.getElementById('db-count').textContent=invoices.length;
+
+  // Variación vs mes anterior
+  const now=new Date();
+  const thisMo=now.getFullYear()+'-'+(now.getMonth()+1).toString().padStart(2,'0');
+  const prevDate=new Date(now.getFullYear(),now.getMonth()-1,1);
+  const prevMo=prevDate.getFullYear()+'-'+(prevDate.getMonth()+1).toString().padStart(2,'0');
+  const thisMoAmt=sumF(invoices.filter(i=>(i.fecha_emision||'').startsWith(thisMo)));
+  const prevMoAmt=sumF(invoices.filter(i=>(i.fecha_emision||'').startsWith(prevMo)));
+  const deltaEl=document.getElementById('db-total-delta');
+  if(prevMoAmt>0){const pct=Math.round((thisMoAmt-prevMoAmt)/prevMoAmt*100);const up=pct>=0;deltaEl.innerHTML=`<span style="color:${up?'var(--green)':'var(--red)'}">${up?'↑':'↓'} ${Math.abs(pct)}% vs mes anterior</span>`;}
+  else deltaEl.textContent='';
+
+  // ── Donut ─────────────────────────────────────────────────
   const circ=2*Math.PI*40;
-  const paidArc=total>0?(sumF(paid)/total)*circ:0;
-  const pendArc=total>0?(sumF(pend)/total)*circ:0;
-  const ovArc=total>0?(sumF(ov)/total)*circ:0;
+  const paidArc=total>0?(sumPaid/total)*circ:0;
+  const pendArc=total>0?(sumPend/total)*circ:0;
+  const ovArc=total>0?(sumOv/total)*circ:0;
   document.getElementById('donut-paid').setAttribute('stroke-dasharray',`${paidArc} ${circ-paidArc}`);
   document.getElementById('donut-paid').setAttribute('transform','rotate(-90 55 55)');
   document.getElementById('donut-pending').setAttribute('stroke-dasharray',`${pendArc} ${circ-pendArc}`);
@@ -1738,27 +1875,145 @@ function renderDashboard(){
   document.getElementById('leg-paid').textContent=paid.length;
   document.getElementById('leg-pending').textContent=pend.length;
   document.getElementById('leg-overdue').textContent=ov.length;
-  const provMap={};invoices.forEach(i=>{provMap[i.proveedor]=(provMap[i.proveedor]||0)+(+i.monto||0)});
-  const topProvs=Object.entries(provMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  const maxProv=topProvs[0]?topProvs[0][1]:1;
+
+  // ── Top Proveedores mejorado ──────────────────────────────
+  const provMap={};
+  invoices.forEach(i=>{
+    if(!provMap[i.proveedor]) provMap[i.proveedor]={amt:0,count:0};
+    provMap[i.proveedor].amt+=(+i.monto||0);
+    provMap[i.proveedor].count++;
+  });
+  const topProvs=Object.entries(provMap).sort((a,b)=>b[1].amt-a[1].amt).slice(0,5);
+  const maxProv=topProvs[0]?topProvs[0][1].amt:1;
   document.getElementById('top-prov-lbl').textContent='top '+topProvs.length;
-  document.getElementById('topProvChart').innerHTML=topProvs.map(([name,amt])=>`<div class="bar-row"><div class="bar-label" title="${name}">${name.split(' ')[0]}</div><div class="bar-track"><div class="bar-fill" style="width:${(amt/maxProv)*100}%;background:var(--cyan)"></div></div><div class="bar-val">${CLP(amt)}</div></div>`).join('');
-  const yr=new Date().getFullYear();
-  document.getElementById('year-lbl').textContent=yr;
+  document.getElementById('topProvChart').innerHTML=topProvs.map(([name,d])=>{
+    const pct=Math.round(d.amt/total*100);
+    return `<div class="bar-row">
+      <div class="bar-label" title="${name}" style="width:80px;flex-shrink:0">${name.split(' ')[0]}</div>
+      <div class="bar-track" style="flex:1">
+        <div class="bar-fill" style="width:${(d.amt/maxProv)*100}%;background:var(--cyan)"></div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;min-width:110px">
+        <div class="bar-val">${CLP(d.amt)}</div>
+        <div style="font-size:0.65rem;color:var(--muted)">${d.count} factura${d.count!==1?'s':''} · ${pct}%</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // ── Gráfico mensual apilado ───────────────────────────────
+  document.getElementById('year-lbl').textContent=dashYr;
   const mnames=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-  const monthly=Array(12).fill(0);
-  invoices.forEach(i=>{if(!i.fecha_emision)return;if(+i.fecha_emision.slice(0,4)===yr)monthly[+i.fecha_emision.slice(5,7)-1]+=(+i.monto||0);});
-  const maxM=Math.max(...monthly,1);
-  document.getElementById('monthChart').innerHTML=monthly.map((v,idx)=>`<div class="bar-row"><div class="bar-label">${mnames[idx]}</div><div class="bar-track"><div class="bar-fill" style="width:${(v/maxM)*100}%;background:linear-gradient(90deg,var(--cyan),var(--green))"></div></div><div class="bar-val">${v>0?CLP(v):'—'}</div></div>`).join('');
+  const monthlyPaid=Array(12).fill(0), monthlyPend=Array(12).fill(0);
+  invoices.forEach(i=>{
+    if(!i.fecha_emision||+i.fecha_emision.slice(0,4)!==dashYr) return;
+    const m=+i.fecha_emision.slice(5,7)-1;
+    if(i.estado==='pagada') monthlyPaid[m]+=(+i.monto||0);
+    else monthlyPend[m]+=(+i.monto||0);
+  });
+  const maxM=Math.max(...monthlyPaid.map((v,i)=>v+monthlyPend[i]),1);
+  document.getElementById('monthChart').innerHTML=monthlyPaid.map((vp,idx)=>{
+    const vn=monthlyPend[idx];const tot=vp+vn;
+    const wPaid=(vp/maxM)*100, wPend=(vn/maxM)*100;
+    return `<div class="bar-row">
+      <div class="bar-label">${mnames[idx]}</div>
+      <div class="bar-track" style="flex:1;position:relative;height:14px;border-radius:4px;overflow:hidden;background:var(--surface2)">
+        <div style="position:absolute;left:0;top:0;height:100%;width:${wPaid}%;background:var(--green);border-radius:4px 0 0 4px;transition:width 0.6s ease"></div>
+        <div style="position:absolute;left:${wPaid}%;top:0;height:100%;width:${wPend}%;background:var(--amber);border-radius:${wPaid>0?'0':'4px'} ${wPend>0?'4px':'0'} ${wPend>0?'4px':'0'} ${wPaid>0?'0':'4px'};transition:width 0.6s ease,left 0.6s ease"></div>
+      </div>
+      <div class="bar-val">${tot>0?CLP(tot):'—'}</div>
+    </div>`;
+  }).join('');
+
+  // ── Flujo de caja del mes actual ──────────────────────────
+  const mesNombres=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  document.getElementById('cashflow-mes').textContent=mesNombres[now.getMonth()]+' '+now.getFullYear();
+  const mesFacts=invoices.filter(i=>(i.fecha_vencimiento||i.fecha_emision||'').startsWith(thisMo));
+  const mesPaid=mesFacts.filter(i=>i.estado==='pagada');
+  const mesPend=mesFacts.filter(i=>i.estado==='pendiente'||i.estado==='vencida');
+  const cfPaidAmt=sumF(mesPaid), cfPendAmt=sumF(mesPend), cfTot=cfPaidAmt+cfPendAmt;
+  document.getElementById('cf-paid').textContent=CLP(cfPaidAmt);
+  document.getElementById('cf-paid-count').textContent=mesPaid.length+' factura'+(mesPaid.length!==1?'s':'');
+  document.getElementById('cf-pending').textContent=CLP(cfPendAmt);
+  document.getElementById('cf-pending-count').textContent=mesPend.length+' factura'+(mesPend.length!==1?'s':'');
+  document.getElementById('cf-total').textContent=CLP(cfTot);
+  document.getElementById('cf-pct').textContent=cfTot>0?Math.round(cfPaidAmt/cfTot*100)+'% pagado':'Sin facturas este mes';
+
+  // ── Últimas facturas con estado y link ────────────────────
   const recent=[...invoices].sort((a,b)=>b.fecha_emision>a.fecha_emision?1:-1).slice(0,5);
   const bm2={pagada:'var(--green-dim)',pendiente:'var(--amber-dim)',vencida:'var(--red-dim)'};
   const cm2={pagada:'var(--green)',pendiente:'var(--amber)',vencida:'var(--red)'};
   const im2={pagada:'✓',pendiente:'◷',vencida:'⚠'};
-  document.getElementById('recentList').innerHTML=recent.map(i=>`<div class="recent-item"><div class="ri-icon" style="background:${bm2[i.estado]};color:${cm2[i.estado]};border:1px solid ${cm2[i.estado]}33">${im2[i.estado]}</div><div class="ri-info"><div class="ri-name">${i.proveedor}</div><div class="ri-num">${i.numero}</div></div><div class="ri-right"><div class="ri-amt">${CLP(i.monto)}</div><div class="ri-date">${fmtD(i.fecha_emision)}</div></div></div>`).join('');
+  const bl2={pagada:'Pagada',pendiente:'Pendiente',vencida:'Vencida'};
+  document.getElementById('recentList').innerHTML=recent.map(i=>`
+    <div class="recent-item" onclick="goToInvoice('${i.id}')" style="cursor:pointer" title="Ver en tabla">
+      <div class="ri-icon" style="background:${bm2[i.estado]};color:${cm2[i.estado]};border:1px solid ${cm2[i.estado]}33">${im2[i.estado]}</div>
+      <div class="ri-info">
+        <div class="ri-name">${i.proveedor}</div>
+        <div class="ri-num">${i.numero}</div>
+      </div>
+      <div class="ri-right">
+        <div class="ri-amt">${CLP(i.monto)}</div>
+        <div style="font-size:0.65rem;margin-top:2px;padding:2px 6px;border-radius:4px;background:${bm2[i.estado]};color:${cm2[i.estado]};display:inline-block">${bl2[i.estado]}</div>
+      </div>
+    </div>`).join('');
+
+  // ── Vencidas/próximas con botón pagar ─────────────────────
   const today2=new Date();today2.setHours(0,0,0,0);
   const soon2=new Date(today2);soon2.setDate(soon2.getDate()+15);
-  const urgent=invoices.filter(i=>{if(!i.fecha_vencimiento)return false;const vd=new Date(i.fecha_vencimiento+'T00:00:00');return(i.estado==='vencida')||(i.estado==='pendiente'&&vd<=soon2);}).sort((a,b)=>a.fecha_vencimiento>b.fecha_vencimiento?1:-1).slice(0,5);
-  document.getElementById('overdueList').innerHTML=urgent.length?urgent.map(i=>{const vd=new Date(i.fecha_vencimiento+'T00:00:00');const diff=Math.round((vd-today2)/(1000*60*60*24));const isOv=diff<0;const st=isOv?'':'background:var(--amber-dim);border-color:rgba(255,179,64,0.2)';const ct=isOv?'':'color:var(--amber)';return`<div class="ov-item"><div class="ov-days" style="${st}"><div class="ov-days-num" style="${ct}">${Math.abs(diff)}</div><div class="ov-days-lbl" style="${ct}">${isOv?'atraso':'días'}</div></div><div class="ov-info"><div class="ov-name">${i.proveedor}</div><div class="ov-num">${i.numero} · vence ${fmtD(i.fecha_vencimiento)}</div></div><div class="ov-amt" style="${ct}">${CLP(i.monto)}</div></div>`;}).join(''):`<div style="padding:20px 0;text-align:center;color:var(--muted);font-size:0.82rem">🎉 Sin facturas urgentes</div>`;
+  const urgent=invoices.filter(i=>{
+    if(!i.fecha_vencimiento) return false;
+    const vd=new Date(i.fecha_vencimiento+'T00:00:00');
+    return(i.estado==='vencida')||(i.estado==='pendiente'&&vd<=soon2);
+  }).sort((a,b)=>a.fecha_vencimiento>b.fecha_vencimiento?1:-1).slice(0,6);
+  document.getElementById('overdueList').innerHTML=urgent.length?urgent.map(i=>{
+    const vd=new Date(i.fecha_vencimiento+'T00:00:00');
+    const diff=Math.round((vd-today2)/(1000*60*60*24));
+    const isOv=diff<0;
+    const borderCol=isOv?'rgba(255,77,109,0.25)':'rgba(255,179,64,0.2)';
+    const bgCol=isOv?'var(--red-dim)':'var(--amber-dim)';
+    const col=isOv?'var(--red)':'var(--amber)';
+    return`<div class="ov-item" style="border-left:3px solid ${col};padding-left:10px">
+      <div class="ov-days" style="background:${bgCol};border-color:${borderCol}">
+        <div class="ov-days-num" style="color:${col}">${Math.abs(diff)}</div>
+        <div class="ov-days-lbl" style="color:${col}">${isOv?'atraso':'días'}</div>
+      </div>
+      <div class="ov-info">
+        <div class="ov-name">${i.proveedor}</div>
+        <div class="ov-num">${i.numero} · vence ${fmtD(i.fecha_vencimiento)}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="ov-amt" style="color:${col}">${CLP(i.monto)}</div>
+        ${i.estado!=='pagada'&&canEdit2()?`<button onclick="togglePaid('${i.id}')" title="Marcar como pagada" style="background:var(--green-dim);border:1px solid rgba(0,255,157,0.3);color:var(--green);border-radius:6px;padding:4px 8px;font-size:0.68rem;cursor:pointer;white-space:nowrap">✓ Pagar</button>`:''}
+      </div>
+    </div>`;
+  }).join(''):`<div style="padding:20px 0;text-align:center;color:var(--muted);font-size:0.82rem">🎉 Sin facturas urgentes</div>`;
+
+  // ── Proveedores sin factura reciente (>30 días) ───────────
+  const provUltima={};
+  invoices.forEach(i=>{
+    const d=i.fecha_emision||'';
+    if(!provUltima[i.proveedor]||d>provUltima[i.proveedor]) provUltima[i.proveedor]=d;
+  });
+  const hace30=new Date(today2);hace30.setDate(hace30.getDate()-30);
+  const hace30str=hace30.toISOString().slice(0,10);
+  const inactivos=Object.entries(provUltima)
+    .filter(([,d])=>d<hace30str)
+    .sort((a,b)=>a[1]<b[1]?-1:1)
+    .slice(0,8);
+  document.getElementById('inactive-prov-lbl').textContent=inactivos.length?`(${inactivos.length})`:'';
+  document.getElementById('inactiveProvList').innerHTML=inactivos.length?
+    `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin-top:8px">`+
+    inactivos.map(([name,d])=>{
+      const dias=Math.round((today2-new Date(d+'T00:00:00'))/(1000*60*60*24));
+      return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 14px;display:flex;align-items:center;gap:10px">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--amber-dim);border:1px solid rgba(255,179,64,0.2);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0">🏢</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:0.82rem;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${name}</div>
+          <div style="font-size:0.68rem;color:var(--amber);margin-top:2px">${dias} días sin factura</div>
+        </div>
+      </div>`;
+    }).join('')+'</div>'
+    :`<div style="padding:16px 0;text-align:center;color:var(--muted);font-size:0.82rem">✅ Todos los proveedores tienen actividad reciente</div>`;
 }
 
 function renderReportes(){
