@@ -1021,7 +1021,6 @@ async function uploadImage(file, path) {
   if (!r.ok) throw new Error(await r.text());
   return `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`;
 }
-}
 
 function imgUrl(path, bustCache=false) {
   if (!path) return null;
