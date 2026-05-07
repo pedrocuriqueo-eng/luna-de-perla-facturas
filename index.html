@@ -1256,7 +1256,7 @@ async function saveInvoice(){
     if(currentPhotoFile){
       const invId = editingId || uid();
       const ext = currentPhotoFile.name.split('.').pop().toLowerCase();
-      const path = `${invId}-factura.${ext}`;
+      const path = `${invId}-factura-${Date.now()}.${ext}`;
       console.log('Subiendo nuevo archivo:', path);
       foto_path = await uploadImage(currentPhotoFile, path);
       _lastUploadTs = Date.now();
@@ -1348,7 +1348,7 @@ async function confirmPay(){
     let comprobante_path=null;
     if(currentPayPhotoFile){
       const ext=currentPayPhotoFile.name.split('.').pop();
-      const path=`${payingId}-comprobante.${ext}`;
+      const path=`${payingId}-comprobante-${Date.now()}.${ext}`;
       comprobante_path=await uploadImage(currentPayPhotoFile,path);
     }
     const pago={fecha,metodo:document.getElementById('payMetodo').value,referencia:document.getElementById('payRef').value.trim(),comprobante_path};
