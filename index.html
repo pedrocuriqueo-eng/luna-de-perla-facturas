@@ -1342,7 +1342,9 @@ function handlePhoto(e){
   if(file.size>10*1024*1024){toast('El archivo supera 10MB');return}
   currentPhotoFile=file;
   const isPdf=file.type==='application/pdf';
+  // Always hide upload zone and show preview
   document.getElementById('uploadZone').style.display='none';
+  document.getElementById('changePhotoWrap').style.display='none';
   document.getElementById('previewWrap').style.display='block';
   if(isPdf){
     document.getElementById('previewImg').style.display='none';
