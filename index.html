@@ -1141,8 +1141,8 @@ function renderTable() {
     tbody.innerHTML = slice.map(i => {
       const fotoUrl = imgUrl(i.foto_path, !!_lastUploadTs);
       const compUrl = i.pago && i.pago.comprobante_path ? imgUrl(i.pago.comprobante_path, !!_lastUploadTs) : null;
-      const fotoIsPdf = i.foto_path && i.foto_path.toLowerCase().endsWith('.pdf');
-      const compIsPdf = i.pago && i.pago.comprobante_path && i.pago.comprobante_path.toLowerCase().endsWith('.pdf');
+      const fotoIsPdf = i.foto_path && i.foto_path.toLowerCase().replace(/\?.*$/,'').endsWith('.pdf');
+      const compIsPdf = i.pago && i.pago.comprobante_path && i.pago.comprobante_path.toLowerCase().replace(/\?.*$/,'').endsWith('.pdf');
       const fotoThumb = fotoUrl ? (fotoIsPdf ? `<div class="thumb" onclick="openLightbox('${i.id}','foto')" title="Ver PDF" style="display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.2rem;border:1px solid var(--border2);border-radius:6px;background:var(--surface2);width:36px;height:36px">📄</div>` : `<img class="thumb" src="${fotoUrl}" onclick="openLightbox('${i.id}','foto')" title="Ver factura"/>`) : `<div class="no-img" title="Sin imagen">◈</div>`;
       const compThumb = compUrl ? (compIsPdf ? `<div class="thumb" onclick="openLightbox('${i.id}','pago')" title="Ver PDF comprobante" style="display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.2rem;border:1px solid rgba(0,255,157,0.4);border-radius:6px;background:var(--green-dim);width:36px;height:36px">📄</div>` : `<img class="thumb" src="${compUrl}" onclick="openLightbox('${i.id}','pago')" title="Ver comprobante" style="border-color:rgba(0,255,157,0.4)"/>`) : (i.estado==='pagada'?`<div class="no-img" title="Sin comprobante" style="border-color:rgba(0,255,157,0.2)">✓</div>`:'');
       return `<tr>
@@ -1266,7 +1266,9 @@ async function saveInvoice(){
     const data={numero,proveedor,rut:document.getElementById('fRut').value.trim(),monto,fecha_emision,fecha_vencimiento:document.getElementById('fVencimiento').value||null,estado,nota:document.getElementById('fNota').value.trim(),foto_path};
 
     if(editingId){
-      await dbUpdate('facturas',editingId,data);
+      const updateResult = await dbUpdate('facturas',editingId,data);
+      console.log('PATCH data enviado:', JSON.stringify(data));
+      console.log('PATCH result:', JSON.stringify(updateResult));
       toast('Factura actualizada');
     } else {
       data.id=uid();
@@ -1276,6 +1278,8 @@ async function saveInvoice(){
     }
     // Reload invoices from Supabase to get fresh data
     invoices = await dbGet('facturas');
+    const updatedInv = invoices.find(i => i.id === editingId);
+    console.log('foto_path en DB tras reload:', updatedInv?.foto_path);
     setSynced();
   } catch(e){
     setSyncError();
