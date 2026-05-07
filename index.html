@@ -1251,8 +1251,6 @@ async function saveInvoice(){
 
     if(editingId){
       await dbUpdate('facturas',editingId,data);
-      const idx=invoices.findIndex(i=>i.id===editingId);
-      invoices[idx]={...invoices[idx],...data};
       toast('Factura actualizada');
     } else {
       data.id=uid();
@@ -1260,6 +1258,9 @@ async function saveInvoice(){
       invoices.unshift(res[0]||data);
       toast('Factura agregada');
     }
+    // Reload invoices from Supabase to get fresh data
+    invoices = await dbGet('facturas');
+    setSynced();
   } catch(e){
     setSyncError();
     toast('Error: '+e.message);console.error(e);
