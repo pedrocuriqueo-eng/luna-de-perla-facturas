@@ -642,7 +642,7 @@ tbody tr:hover .racts{opacity:1}
           <tbody id="tableBody"></tbody>
         </table>
         <div class="empty" id="emptyState" style="display:none"><span class="empty-icon">◈</span><p class="empty-text">No se encontraron facturas</p></div>
-        <div class="pager"><div class="pager-info" id="pageInfo"></div><div class="pager-btns" id="pageBtns"></div></div>
+        <div class="pager"><div class="pager-info" id="pageInfo"></div><div style="display:flex;align-items:center;gap:8px"><label style="font-size:0.72rem;color:var(--muted)">Filas:</label><select id="pageSizeSelect" onchange="pageSize=+this.value;page=1;renderTable()" style="background:var(--surface);border:1px solid var(--border2);color:var(--text);border-radius:6px;padding:3px 8px;font-size:0.75rem;cursor:pointer"><option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option></select></div><div class="pager-btns" id="pageBtns"></div></div>
       </div>
     </div><!-- /facturas -->
 
@@ -969,6 +969,55 @@ tbody tr:hover .racts{opacity:1}
   </div>
 </div>
 
+<!-- Modal Editar Comprobante de Pago -->
+<div class="overlay" id="editPayOverlay" onclick="closeEditPayOnOverlay(event)">
+  <div class="modal" style="width:480px">
+    <div class="modal-top" style="background:linear-gradient(135deg,#0d2218,var(--bg2))">
+      <div class="modal-title" style="color:var(--cyan)">✎ EDITAR PAGO</div>
+      <button class="modal-x" onclick="closeEditPayModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--cyan-dim);border:1px solid rgba(0,229,255,0.15);border-radius:var(--r-sm);padding:12px 16px;margin-bottom:18px">
+        <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--cyan);font-weight:600;margin-bottom:4px">Editando pago de</div>
+        <div style="font-size:0.9rem;font-weight:500" id="editPayInvName">—</div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-top:2px" id="editPayInvDetail">—</div>
+      </div>
+      <div class="fld" style="margin-bottom:14px"><label>Fecha de pago *</label><input type="date" id="editPayFecha"/></div>
+      <div class="fld" style="margin-bottom:14px"><label>Método de pago</label>
+        <select id="editPayMetodo"><option value="">Seleccionar…</option><option value="transferencia">Transferencia bancaria</option><option value="cheque">Cheque</option><option value="efectivo">Efectivo</option><option value="tarjeta">Tarjeta</option><option value="otro">Otro</option></select>
+      </div>
+      <div class="fld" style="margin-bottom:14px"><label>N° Comprobante / Referencia</label><input type="text" id="editPayRef" placeholder="Ej: TRF-2024-00123"/></div>
+      <div class="fld">
+        <label>Comprobante adjunto</label>
+        <div id="editPayCurrentWrap" style="display:none;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r-sm)">
+            <span id="editPayCurrentIcon" style="font-size:1.4rem">🧾</span>
+            <span id="editPayCurrentName" style="font-size:0.78rem;color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Sin comprobante</span>
+            <button onclick="clearEditPayComprobante()" title="Quitar comprobante actual" style="background:var(--red-dim);border:1px solid rgba(255,77,109,0.3);color:var(--red);border-radius:6px;padding:3px 8px;font-size:0.7rem;cursor:pointer">✕ Quitar</button>
+          </div>
+        </div>
+        <div id="editPayUploadZone" class="upload-zone" style="position:relative">
+          <input type="file" id="editPayFoto" accept="image/*,application/pdf" onchange="handleEditPayPhoto(event)" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%"/>
+          <span class="upload-icon">🧾</span>
+          <div class="upload-text" id="editPayUploadText">Subir nuevo comprobante<br/><span>JPG, PNG, WEBP o PDF — máx. 10MB</span></div>
+        </div>
+        <div id="editPayPreviewWrap" class="preview-wrap" style="display:none;margin-top:8px">
+          <img id="editPayPreviewImg" src="" alt="Comprobante" style="display:none"/>
+          <div id="editPayPreviewPdf" style="display:none;padding:12px 14px;align-items:center;gap:10px">
+            <span style="font-size:1.6rem">📄</span>
+            <div><div id="editPayPdfName" style="font-size:0.82rem;font-weight:500;color:var(--text)"></div></div>
+          </div>
+          <button class="preview-remove" onclick="removeEditPayPhoto()">✕</button>
+        </div>
+      </div>
+      <div class="modal-footer" style="margin-top:20px">
+        <button class="btn btn-ghost" onclick="closeEditPayModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveEditPay()">Guardar cambios</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Lightbox -->
 <div class="lightbox" id="lightbox" onclick="closeLightbox()">
   <button class="lb-close" onclick="closeLightbox()">✕</button>
@@ -1070,7 +1119,7 @@ let currentPhotoFile = null, currentPhotoPreview = null;
 let currentPayPhotoFile = null;
 let currentCompFile = null;
 let payingId = null;
-const PAGE = 10;
+let pageSize = 10;
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 
@@ -1154,9 +1203,9 @@ function sortBy(f){sortDir=sortField===f?-sortDir:-1;sortField=f;renderTable()}
 function renderTable() {
   const filtered = getFiltered();
   const total = filtered.length;
-  const pages = Math.max(1, Math.ceil(total/PAGE));
+  const pages = Math.max(1, Math.ceil(total/pageSize));
   if(page>pages) page=1;
-  const slice = filtered.slice((page-1)*PAGE, page*PAGE);
+  const slice = filtered.slice((page-1)*pageSize, page*pageSize);
   const tbody = document.getElementById('tableBody');
   const empty = document.getElementById('emptyState');
 
@@ -1168,8 +1217,8 @@ function renderTable() {
       const compUrl = i.pago && i.pago.comprobante_path ? imgUrl(i.pago.comprobante_path, !!_lastUploadTs) : null;
       const fotoIsPdf = i.foto_path && i.foto_path.toLowerCase().replace(/\?.*$/,'').endsWith('.pdf');
       const compIsPdf = i.pago && i.pago.comprobante_path && i.pago.comprobante_path.toLowerCase().replace(/\?.*$/,'').endsWith('.pdf');
-      const fotoThumb = fotoUrl ? (fotoIsPdf ? `<div class="thumb" onclick="openLightbox('${i.id}','foto')" title="Ver PDF" style="display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.2rem;border:1px solid var(--border2);border-radius:6px;background:var(--surface2);width:36px;height:36px">📄</div>` : `<img class="thumb" src="${fotoUrl}" onclick="openLightbox('${i.id}','foto')" title="Ver factura"/>`) : `<div class="no-img" title="Sin imagen">◈</div>`;
-      const compThumb = compUrl ? (compIsPdf ? `<div class="thumb" onclick="openLightbox('${i.id}','pago')" title="Ver PDF comprobante" style="display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.2rem;border:1px solid rgba(0,255,157,0.4);border-radius:6px;background:var(--green-dim);width:36px;height:36px">📄</div>` : `<img class="thumb" src="${compUrl}" onclick="openLightbox('${i.id}','pago')" title="Ver comprobante" style="border-color:rgba(0,255,157,0.4)"/>`) : (i.estado==='pagada'?`<div class="no-img" title="Sin comprobante" style="border-color:rgba(0,255,157,0.2)">✓</div>`:'');
+      const fotoThumb = fotoUrl ? `<div style="position:relative;display:inline-block">${fotoIsPdf ? `<div class="thumb" onclick="openLightbox('${i.id}','foto')" title="Ver PDF" style="display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.2rem;border:1px solid var(--border2);border-radius:6px;background:var(--surface2);width:36px;height:36px">📄</div>` : `<img class="thumb" src="${fotoUrl}" onclick="openLightbox('${i.id}','foto')" title="Ver factura" onerror="this.style.opacity=0.2"/>`}${canEdit2()?`<button onclick="deleteAttachment('${i.id}','foto',event)" title="Eliminar imagen" style="position:absolute;top:-5px;right:-5px;width:14px;height:14px;border-radius:50%;background:var(--red);border:none;color:#fff;font-size:0.5rem;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;padding:0">✕</button>`:''}` + `</div>` : `<div class="no-img" title="Sin imagen">◈</div>`;
+      const compThumb = compUrl ? `<div style="position:relative;display:inline-block">${compIsPdf ? `<div class="thumb" onclick="openLightbox('${i.id}','pago')" title="Ver PDF comprobante" style="display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.2rem;border:1px solid rgba(0,255,157,0.4);border-radius:6px;background:var(--green-dim);width:36px;height:36px">📄</div>` : `<img class="thumb" src="${compUrl}" onclick="openLightbox('${i.id}','pago')" title="Ver comprobante" style="border-color:rgba(0,255,157,0.4)"/>`}${canEdit2()?`<button onclick="deleteAttachment('${i.id}','pago',event)" title="Eliminar comprobante" style="position:absolute;top:-5px;right:-5px;width:14px;height:14px;border-radius:50%;background:var(--red);border:none;color:#fff;font-size:0.5rem;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;padding:0">✕</button>`:''}` + `</div>` : (i.estado==='pagada'?`<div class="no-img" title="Sin comprobante" style="border-color:rgba(0,255,157,0.2)">✓</div>`:'');
       return `<tr>
         <td><div class="num">${i.numero}</div></td>
         <td><div class="pname">${i.proveedor}</div><div class="prut">${i.rut||''}</div></td>
@@ -1188,6 +1237,7 @@ function renderTable() {
         </td>
         <td><div class="racts">
           ${canEdit2()?`<button class="iBtn ok" onclick="togglePaid('${i.id}')" title="${i.estado==='pagada'?'Desmarcar':'Marcar como pagada'}">${i.estado==='pagada'?'↩':'✓'}</button>`:''}
+          ${canEdit2()&&i.estado==='pagada'?`<button class="iBtn" onclick="openEditPayModal('${i.id}')" title="Editar pago" style="color:var(--cyan);font-size:0.85rem">💳</button>`:''}
           ${canEdit2()?`<button class="iBtn" onclick="editInvoice('${i.id}')" title="Editar">✎</button>`:''}
           ${canDelete()?`<button class="iBtn del" onclick="deleteInvoice('${i.id}')" title="Eliminar">✕</button>`:''}
         </div></td>
@@ -1195,7 +1245,7 @@ function renderTable() {
     }).join('');
   }
 
-  document.getElementById('pageInfo').textContent = total ? `${(page-1)*PAGE+1}–${Math.min(page*PAGE,total)} de ${total} facturas` : '';
+  document.getElementById('pageInfo').textContent = total ? `${(page-1)*pageSize+1}–${Math.min(page*pageSize,total)} de ${total} facturas` : '';
   const pb = document.getElementById('pageBtns'); pb.innerHTML='';
   if(pages>1){
     const mk=(l,pg,dis)=>{const b=document.createElement('button');b.className='pBtn'+(pg===page&&typeof pg==='number'?' active':'');b.textContent=l;b.disabled=dis;b.onclick=()=>{page=pg;renderTable()};return b};
@@ -1365,6 +1415,125 @@ function removeCompPhoto(){
 }
 function editInvoice(id){openModal(id)}
 
+// ── Delete attachment (foto or comprobante) ───────────────
+async function deleteAttachment(id, tipo, e){
+  e.stopPropagation();
+  const label = tipo==='foto' ? 'la imagen de la factura' : 'el comprobante de pago';
+  if(!confirm(`¿Eliminar ${label}? Esta acción no se puede deshacer.`)) return;
+  showSpinner('Eliminando…');
+  try {
+    const inv = invoices.find(i=>i.id===id); if(!inv) return;
+    if(tipo==='foto'){
+      await dbUpdate('facturas', id, {foto_path: null});
+      inv.foto_path = null;
+    } else {
+      const pagoActual = inv.pago || {};
+      const nuevoPago = {...pagoActual, comprobante_path: null};
+      await dbUpdate('facturas', id, {pago: nuevoPago});
+      if(inv.pago) inv.pago.comprobante_path = null;
+    }
+    toast('Archivo eliminado');
+  } catch(err){ toast('Error: '+err.message); console.error(err); }
+  finally { hideSpinner(); renderTable(); }
+}
+
+// ── Edit pay modal ────────────────────────────────────────
+let editPayingId = null;
+let currentEditPayFile = null;
+let clearEditPayComp = false;
+
+function openEditPayModal(id){
+  editPayingId = id; currentEditPayFile = null; clearEditPayComp = false;
+  const inv = invoices.find(i=>i.id===id); if(!inv||!inv.pago) return;
+  document.getElementById('editPayInvName').textContent = inv.proveedor;
+  document.getElementById('editPayInvDetail').textContent = `${inv.numero} · $${(+inv.monto||0).toLocaleString('es-CL')}`;
+  document.getElementById('editPayFecha').value = inv.pago.fecha || '';
+  document.getElementById('editPayMetodo').value = inv.pago.metodo || '';
+  document.getElementById('editPayRef').value = inv.pago.referencia || '';
+  // Reset upload area
+  document.getElementById('editPayFoto').value = '';
+  document.getElementById('editPayUploadZone').style.display = 'block';
+  document.getElementById('editPayPreviewWrap').style.display = 'none';
+  // Show current comprobante if exists
+  const hasComp = inv.pago.comprobante_path;
+  document.getElementById('editPayCurrentWrap').style.display = hasComp ? 'block' : 'none';
+  if(hasComp){
+    const isPdf = inv.pago.comprobante_path.toLowerCase().replace(/\?.*$/,'').endsWith('.pdf');
+    document.getElementById('editPayCurrentIcon').textContent = isPdf ? '📄' : '🖼️';
+    document.getElementById('editPayCurrentName').textContent = inv.pago.comprobante_path.split('/').pop().split('?')[0];
+    document.getElementById('editPayUploadText').innerHTML = 'Reemplazar comprobante<br/><span>JPG, PNG, WEBP o PDF — máx. 10MB</span>';
+  } else {
+    document.getElementById('editPayUploadText').innerHTML = 'Subir comprobante<br/><span>JPG, PNG, WEBP o PDF — máx. 10MB</span>';
+  }
+  document.getElementById('editPayOverlay').classList.add('open');
+}
+
+function closeEditPayModal(){
+  document.getElementById('editPayOverlay').classList.remove('open');
+  editPayingId = null; currentEditPayFile = null; clearEditPayComp = false;
+}
+function closeEditPayOnOverlay(e){ if(e.target.id==='editPayOverlay') closeEditPayModal(); }
+
+function handleEditPayPhoto(e){
+  const file = e.target.files[0]; if(!file) return;
+  if(file.size > 10*1024*1024){ toast('El archivo supera 10MB'); return; }
+  currentEditPayFile = file;
+  clearEditPayComp = false;
+  const isPdf = file.type === 'application/pdf';
+  document.getElementById('editPayUploadZone').style.display = 'none';
+  document.getElementById('editPayPreviewWrap').style.display = 'block';
+  if(isPdf){
+    document.getElementById('editPayPreviewImg').style.display = 'none';
+    document.getElementById('editPayPreviewPdf').style.display = 'flex';
+    document.getElementById('editPayPdfName').textContent = file.name;
+  } else {
+    document.getElementById('editPayPreviewPdf').style.display = 'none';
+    const img = document.getElementById('editPayPreviewImg');
+    const r = new FileReader(); r.onload = ev=>{ img.src=ev.target.result; img.style.display='block'; }; r.readAsDataURL(file);
+  }
+}
+
+function removeEditPayPhoto(){
+  currentEditPayFile = null;
+  document.getElementById('editPayFoto').value = '';
+  document.getElementById('editPayPreviewWrap').style.display = 'none';
+  document.getElementById('editPayUploadZone').style.display = 'block';
+}
+
+function clearEditPayComprobante(){
+  clearEditPayComp = true;
+  currentEditPayFile = null;
+  document.getElementById('editPayCurrentWrap').style.display = 'none';
+  document.getElementById('editPayUploadText').innerHTML = 'Subir comprobante<br/><span>JPG, PNG, WEBP o PDF — máx. 10MB</span>';
+  toast('El comprobante se eliminará al guardar');
+}
+
+async function saveEditPay(){
+  const fecha = document.getElementById('editPayFecha').value;
+  if(!fecha){ toast('Ingresa la fecha de pago'); return; }
+  const inv = invoices.find(i=>i.id===editPayingId); if(!inv) return;
+  showSpinner('Guardando pago…');
+  try {
+    let comprobante_path = clearEditPayComp ? null : (inv.pago?.comprobante_path || null);
+    if(currentEditPayFile){
+      const ext = currentEditPayFile.name.split('.').pop().toLowerCase();
+      const path = `${editPayingId}-comprobante-${Date.now()}.${ext}`;
+      comprobante_path = await uploadImage(currentEditPayFile, path);
+    }
+    const pago = {
+      fecha,
+      metodo: document.getElementById('editPayMetodo').value,
+      referencia: document.getElementById('editPayRef').value.trim(),
+      comprobante_path
+    };
+    await dbUpdate('facturas', editPayingId, {estado:'pagada', pago});
+    inv.pago = pago;
+    invoices = await dbGet('facturas');
+    toast('✅ Pago actualizado');
+  } catch(err){ toast('Error: '+err.message); console.error(err); }
+  finally { hideSpinner(); closeEditPayModal(); renderTable(); }
+}
+
 async function deleteInvoice(id){
   if(!confirm('¿Eliminar esta factura?'))return;
   showSpinner('Eliminando…');
@@ -1518,7 +1687,7 @@ function openLightbox(id, tipo='foto'){
   document.getElementById('lightbox').classList.add('open');
 }
 function closeLightbox(){document.getElementById('lightbox').classList.remove('open')}
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeLightbox();closeModal();closePayModal();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeLightbox();closeModal();closePayModal();closeEditPayModal();}});
 
 // ── Export CSV ────────────────────────────────────────────
 function exportCSV(){
