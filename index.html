@@ -890,6 +890,30 @@ tbody tr:hover .racts{opacity:1}
             </div>
           </div>
         </div>
+        <!-- Comprobante de pago en modo edición -->
+        <div class="fld fspan" id="compWrap" style="display:none">
+          <label>Comprobante de pago</label>
+          <div id="compPreviewWrap" style="display:none;margin-bottom:8px">
+            <div id="compCurrentThumb" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r-sm)">
+              <span id="compCurrentIcon" style="font-size:1.4rem">🧾</span>
+              <span id="compCurrentName" style="font-size:0.8rem;color:var(--muted);flex:1">Comprobante actual</span>
+              <span style="font-size:0.7rem;color:var(--cyan)">← actual</span>
+            </div>
+          </div>
+          <div id="compUploadZone" class="upload-zone" style="position:relative">
+            <input type="file" id="fComp" accept="image/*,application/pdf" onchange="handleCompPhoto(event)" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%"/>
+            <span class="upload-icon">🧾</span>
+            <div class="upload-text">Cambiar comprobante — <span>haz clic para subir</span><br/>JPG, PNG, WEBP, PDF — máx. 10MB</div>
+          </div>
+          <div id="compNewPreviewWrap" class="preview-wrap" style="display:none;margin-top:8px">
+            <img id="compNewPreviewImg" src="" alt="Nuevo comprobante" style="display:none"/>
+            <div id="compNewPreviewPdf" style="display:none;padding:14px 16px;align-items:center;gap:10px">
+              <span style="font-size:1.8rem">📄</span>
+              <div><div id="compNewPdfName" style="font-size:0.82rem;font-weight:500;color:var(--text)"></div></div>
+            </div>
+            <button class="preview-remove" onclick="removeCompPhoto()">✕</button>
+          </div>
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
@@ -1044,6 +1068,7 @@ let invoices = [];
 let editingId = null, sortField = 'created_at', sortDir = -1, page = 1;
 let currentPhotoFile = null, currentPhotoPreview = null;
 let currentPayPhotoFile = null;
+let currentCompFile = null;
 let payingId = null;
 const PAGE = 10;
 
@@ -1205,6 +1230,10 @@ function openModal(id=null){
   document.getElementById('uploadZone').style.display='block';
   document.getElementById('previewWrap').style.display='none';
   document.getElementById('changePhotoWrap').style.display='none';
+  document.getElementById('compWrap').style.display='none';
+  document.getElementById('compUploadZone').style.display='block';
+  document.getElementById('compNewPreviewWrap').style.display='none';
+  currentCompFile=null;
   if(id){
     const inv=invoices.find(i=>i.id===id);
     if(inv){
@@ -1217,18 +1246,28 @@ function openModal(id=null){
       document.getElementById('fNota').value=inv.nota||'';
       document.getElementById('fEstado').value=inv.estado;
       if(inv.foto_path){
-        const isPdf=inv.foto_path.toLowerCase().endsWith('.pdf');
+        const isPdf=inv.foto_path.toLowerCase().replace(/\?.*$/,'').endsWith('.pdf');
         document.getElementById('uploadZone').style.display='none';
         document.getElementById('previewWrap').style.display='block';
         document.getElementById('changePhotoWrap').style.display='block';
         if(isPdf){
           document.getElementById('previewImg').style.display='none';
           document.getElementById('previewPdf').style.display='flex';
-          document.getElementById('previewPdfName').textContent=inv.foto_path.split('/').pop();
+          document.getElementById('previewPdfName').textContent=inv.foto_path.split('/').pop().split('?')[0];
         } else {
           document.getElementById('previewPdf').style.display='none';
-          document.getElementById('previewImg').src=imgUrl(inv.foto_path);
+          document.getElementById('previewImg').src=imgUrl(inv.foto_path, true);
           document.getElementById('previewImg').style.display='block';
+        }
+      }
+      // Show comprobante section if invoice is paid
+      if(inv.estado==='pagada' && inv.pago){
+        document.getElementById('compWrap').style.display='block';
+        if(inv.pago.comprobante_path){
+          const isCompPdf=inv.pago.comprobante_path.toLowerCase().replace(/\?.*$/,'').endsWith('.pdf');
+          document.getElementById('compPreviewWrap').style.display='block';
+          document.getElementById('compCurrentIcon').textContent=isCompPdf?'📄':'🖼️';
+          document.getElementById('compCurrentName').textContent=inv.pago.comprobante_path.split('/').pop().split('?')[0];
         }
       }
     }
@@ -1265,6 +1304,17 @@ async function saveInvoice(){
 
     const data={numero,proveedor,rut:document.getElementById('fRut').value.trim(),monto,fecha_emision,fecha_vencimiento:document.getElementById('fVencimiento').value||null,estado,nota:document.getElementById('fNota').value.trim(),foto_path};
 
+    // Upload new comprobante if provided (edit mode, paid invoice)
+    if(editingId && currentCompFile){
+      const inv=invoices.find(i=>i.id===editingId);
+      const ext=currentCompFile.name.split('.').pop().toLowerCase();
+      const compPath=`${editingId}-comprobante-${Date.now()}.${ext}`;
+      const newCompUrl=await uploadImage(currentCompFile, compPath);
+      const pagoActual=inv?.pago||{};
+      data.pago={...pagoActual, comprobante_path: newCompUrl};
+      console.log('Nuevo comprobante_path:', newCompUrl);
+    }
+
     if(editingId){
       const updateResult = await dbUpdate('facturas',editingId,data);
       console.log('PATCH data enviado:', JSON.stringify(data));
@@ -1290,6 +1340,29 @@ async function saveInvoice(){
   }
 }
 
+function handleCompPhoto(e){
+  const file=e.target.files[0];if(!file)return;
+  if(file.size>10*1024*1024){toast('El archivo supera 10MB');return}
+  currentCompFile=file;
+  const isPdf=file.type==='application/pdf';
+  document.getElementById('compUploadZone').style.display='none';
+  document.getElementById('compNewPreviewWrap').style.display='block';
+  if(isPdf){
+    document.getElementById('compNewPreviewImg').style.display='none';
+    document.getElementById('compNewPreviewPdf').style.display='flex';
+    document.getElementById('compNewPdfName').textContent=file.name;
+  } else {
+    document.getElementById('compNewPreviewPdf').style.display='none';
+    const img=document.getElementById('compNewPreviewImg');
+    const r=new FileReader();r.onload=ev=>{img.src=ev.target.result;img.style.display='block';};r.readAsDataURL(file);
+  }
+}
+function removeCompPhoto(){
+  currentCompFile=null;
+  document.getElementById('fComp').value='';
+  document.getElementById('compNewPreviewWrap').style.display='none';
+  document.getElementById('compUploadZone').style.display='block';
+}
 function editInvoice(id){openModal(id)}
 
 async function deleteInvoice(id){
