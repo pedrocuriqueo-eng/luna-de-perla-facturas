@@ -1009,6 +1009,19 @@ async function uploadImage(file, path) {
     'Cache-Control': '3600',
     'x-upsert': 'true'
   };
+  // Try to delete old file with different extensions first
+  if(editingId){
+    const extensions = ['pdf','png','jpg','jpeg','webp'];
+    for(const ext of extensions){
+      const oldPath = path.replace(/\.[^.]+$/, '.'+ext);
+      if(oldPath !== path){
+        await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${oldPath}`,{
+          method:'DELETE',
+          headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${token}`}
+        }).catch(()=>{});
+      }
+    }
+  }
   const r = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${path}`, {
     method: 'POST', headers: storageHeaders, body: file
   });
@@ -1238,9 +1251,11 @@ async function saveInvoice(){
     // Upload photo to Storage if new file selected
     let foto_path = editingId ? (invoices.find(i=>i.id===editingId)||{}).foto_path : null;
     if(currentPhotoFile){
-      const ext=currentPhotoFile.name.split('.').pop();
-      const path=`facturas/${editingId||uid()}-factura.${ext}`;
-      foto_path=await uploadImage(currentPhotoFile, path);
+      const invId = editingId || uid();
+      const ext = currentPhotoFile.name.split('.').pop().toLowerCase();
+      // Use fixed path name to always overwrite previous file
+      const path = `facturas/${invId}-factura.${ext}`;
+      foto_path = await uploadImage(currentPhotoFile, path);
     }
 
     const data={numero,proveedor,rut:document.getElementById('fRut').value.trim(),monto,fecha_emision,fecha_vencimiento:document.getElementById('fVencimiento').value||null,estado,nota:document.getElementById('fNota').value.trim(),foto_path};
