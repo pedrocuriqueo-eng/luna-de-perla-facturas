@@ -1006,21 +1006,31 @@ async function uploadImage(file, path) {
     'apikey': SUPABASE_KEY,
     'Authorization': `Bearer ${token}`,
     'Content-Type': file.type,
-    'Cache-Control': '3600',
+    'Cache-Control': 'no-cache',
     'x-upsert': 'true'
   };
-  const r = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${path}`, {
-    method: 'POST', headers: storageHeaders, body: file
+  // Intentar PUT primero (upsert/overwrite), si falla usar POST (nuevo archivo)
+  let r = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${path}`, {
+    method: 'PUT', headers: storageHeaders, body: file
   });
+  if (!r.ok) {
+    r = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${path}`, {
+      method: 'POST', headers: storageHeaders, body: file
+    });
+  }
   if (!r.ok) throw new Error(await r.text());
   return `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`;
 }
-
-function imgUrl(path) {
-  if (!path) return null;
-  if (path.startsWith('http')) return path;
-  return `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`;
 }
+
+function imgUrl(path, bustCache=false) {
+  if (!path) return null;
+  let url = path.startsWith('http') ? path : `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`;
+  if (bustCache) url += (url.includes('?') ? '&' : '?') + 't=' + Date.now();
+  return url;
+}
+// Guarda el timestamp de la última subida para cache-busting
+let _lastUploadTs = null;
 
 // ═══════════════════════════════════════════════════════════
 // APP STATE
@@ -1124,8 +1134,8 @@ function renderTable() {
   else {
     empty.style.display='none';
     tbody.innerHTML = slice.map(i => {
-      const fotoUrl = imgUrl(i.foto_path);
-      const compUrl = i.pago && i.pago.comprobante_path ? imgUrl(i.pago.comprobante_path) : null;
+      const fotoUrl = imgUrl(i.foto_path, !!_lastUploadTs);
+      const compUrl = i.pago && i.pago.comprobante_path ? imgUrl(i.pago.comprobante_path, !!_lastUploadTs) : null;
       const fotoIsPdf = i.foto_path && i.foto_path.toLowerCase().endsWith('.pdf');
       const compIsPdf = i.pago && i.pago.comprobante_path && i.pago.comprobante_path.toLowerCase().endsWith('.pdf');
       const fotoThumb = fotoUrl ? (fotoIsPdf ? `<div class="thumb" onclick="openLightbox('${i.id}','foto')" title="Ver PDF" style="display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.2rem;border:1px solid var(--border2);border-radius:6px;background:var(--surface2);width:36px;height:36px">📄</div>` : `<img class="thumb" src="${fotoUrl}" onclick="openLightbox('${i.id}','foto')" title="Ver factura"/>`) : `<div class="no-img" title="Sin imagen">◈</div>`;
@@ -1244,6 +1254,7 @@ async function saveInvoice(){
       const path = `facturas/${invId}-factura.${ext}`;
       console.log('Subiendo nuevo archivo:', path);
       foto_path = await uploadImage(currentPhotoFile, path);
+      _lastUploadTs = Date.now();
       console.log('Nueva foto_path:', foto_path);
     }
 
