@@ -775,20 +775,101 @@ tbody tr:hover .racts{opacity:1}
 
     <!-- REPORTES VIEW -->
     <div class="view" id="view-reportes">
+
+      <!-- Resumen ejecutivo mejorado -->
       <div class="dash-panel" style="margin-bottom:18px">
-        <div class="panel-title">Resumen ejecutivo</div>
-        <div class="stat-row" style="margin-bottom:18px">
+        <div class="panel-title" style="display:flex;align-items:center;justify-content:space-between">
+          <span>Resumen ejecutivo</span>
+          <div style="display:flex;gap:8px">
+            <button onclick="exportRepCSV()" class="btn btn-ghost" style="font-size:0.74rem;padding:5px 12px">⬇ CSV</button>
+            <button onclick="exportRepPDF()" class="btn btn-ghost" style="font-size:0.74rem;padding:5px 12px">⬇ PDF</button>
+          </div>
+        </div>
+        <div class="stat-row" style="margin-bottom:14px;grid-template-columns:repeat(3,1fr)">
           <div class="stat-box"><div class="stat-val" id="rep-total" style="color:var(--cyan)">$0</div><div class="stat-lbl">Total emitido</div></div>
-          <div class="stat-box"><div class="stat-val" id="rep-paid-amt" style="color:var(--green)">$0</div><div class="stat-lbl">Total cobrado</div></div>
+          <div class="stat-box"><div class="stat-val" id="rep-paid-amt" style="color:var(--green)">$0</div><div class="stat-lbl">Total pagado</div></div>
           <div class="stat-box"><div class="stat-val" id="rep-pending-amt" style="color:var(--amber)">$0</div><div class="stat-lbl">Por cobrar</div></div>
         </div>
-        <div class="stat-row">
+        <div class="stat-row" style="grid-template-columns:repeat(3,1fr)">
           <div class="stat-box"><div class="stat-val" id="rep-overdue-amt" style="color:var(--red)">$0</div><div class="stat-lbl">Monto vencido</div></div>
           <div class="stat-box"><div class="stat-val" id="rep-avg" style="color:var(--cyan)">$0</div><div class="stat-lbl">Promedio factura</div></div>
-          <div class="stat-box"><div class="stat-val" id="rep-with-photo" style="color:var(--muted)">0</div><div class="stat-lbl">Con foto adjunta</div></div>
+          <div class="stat-box"><div class="stat-val" id="rep-avg-days" style="color:var(--muted)">0</div><div class="stat-lbl">Días prom. a vencer</div></div>
         </div>
       </div>
-      <div class="dash-panel"><div class="panel-title">Detalle por estado</div><div class="bar-chart" id="repBarChart"></div></div>
+
+      <!-- Highlights -->
+      <div class="dash-grid" style="margin-bottom:0">
+        <div class="dash-panel">
+          <div class="panel-title">🏆 Mayor factura</div>
+          <div id="rep-max-inv" style="padding:4px 0"></div>
+        </div>
+        <div class="dash-panel">
+          <div class="panel-title">⚠️ Más antigua sin pagar</div>
+          <div id="rep-oldest-unpaid" style="padding:4px 0"></div>
+        </div>
+        <div class="dash-panel">
+          <div class="panel-title">📎 Documentación</div>
+          <div id="rep-docs" style="padding:4px 0"></div>
+        </div>
+      </div>
+
+      <!-- Detalle por estado -->
+      <div class="dash-panel">
+        <div class="panel-title">Detalle por estado</div>
+        <div class="bar-chart" id="repBarChart"></div>
+      </div>
+
+      <!-- Evolución mensual -->
+      <div class="dash-panel">
+        <div class="panel-title" style="display:flex;align-items:center;justify-content:space-between">
+          <span>Evolución mensual</span>
+          <div style="display:flex;align-items:center;gap:6px">
+            <button onclick="repYr--;renderReportes()" style="background:var(--surface2);border:1px solid var(--border2);color:var(--muted);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:0.8rem">‹</button>
+            <span id="rep-year-lbl" style="font-size:0.82rem;color:var(--cyan);min-width:40px;text-align:center"></span>
+            <button onclick="repYr++;renderReportes()" style="background:var(--surface2);border:1px solid var(--border2);color:var(--muted);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:0.8rem">›</button>
+          </div>
+        </div>
+        <div id="repMonthTable" style="margin-top:8px"></div>
+      </div>
+
+      <!-- Reporte por proveedor -->
+      <div class="dash-panel">
+        <div class="panel-title" style="display:flex;align-items:center;justify-content:space-between">
+          <span>Reporte por proveedor</span>
+          <button onclick="exportProvCSV()" class="btn btn-ghost" style="font-size:0.74rem;padding:5px 12px">⬇ Exportar CSV</button>
+        </div>
+        <div id="repProvTable" style="margin-top:8px"></div>
+      </div>
+
+      <!-- Mini tabla facturas filtrable -->
+      <div class="dash-panel">
+        <div class="panel-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <span>Todas las facturas</span>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <select id="repFilterStatus" onchange="renderReportes()" style="background:var(--surface2);border:1px solid var(--border2);color:var(--text);border-radius:6px;padding:4px 10px;font-size:0.74rem;cursor:pointer">
+              <option value="">Todos los estados</option>
+              <option value="pagada">Pagadas</option>
+              <option value="pendiente">Pendientes</option>
+              <option value="vencida">Vencidas</option>
+            </select>
+            <select id="repFilterMonth" onchange="renderReportes()" style="background:var(--surface2);border:1px solid var(--border2);color:var(--text);border-radius:6px;padding:4px 10px;font-size:0.74rem;cursor:pointer">
+              <option value="">Todos los meses</option>
+              <option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option>
+              <option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option>
+              <option value="07">Julio</option><option value="08">Agosto</option><option value="09">Septiembre</option>
+              <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+            </select>
+            <select id="repSortField" onchange="renderReportes()" style="background:var(--surface2);border:1px solid var(--border2);color:var(--text);border-radius:6px;padding:4px 10px;font-size:0.74rem;cursor:pointer">
+              <option value="fecha_emision">Ordenar: Fecha emisión</option>
+              <option value="monto">Ordenar: Monto</option>
+              <option value="proveedor">Ordenar: Proveedor</option>
+              <option value="fecha_vencimiento">Ordenar: Vencimiento</option>
+            </select>
+          </div>
+        </div>
+        <div id="repInvTable" style="margin-top:8px"></div>
+      </div>
+
     </div>
 
     <!-- PROVEEDORES VIEW -->
@@ -1210,6 +1291,7 @@ let _lastUploadTs = null;
 let invoices = [];
 let editingId = null, sortField = 'created_at', sortDir = -1, page = 1;
 let dashYr = new Date().getFullYear();
+let repYr = new Date().getFullYear();
 let currentPhotoFile = null, currentPhotoPreview = null;
 let currentPayPhotoFile = null;
 let currentCompFile = null;
@@ -2019,15 +2101,321 @@ function renderDashboard(){
 function renderReportes(){
   const sumF=arr=>arr.reduce((a,b)=>a+(+b.monto||0),0);
   const byS=s=>invoices.filter(i=>i.estado===s);
-  const total=sumF(invoices);const paid=byS('pagada'),pend=byS('pendiente'),ov=byS('vencida');
+  const total=sumF(invoices);
+  const paid=byS('pagada'),pend=byS('pendiente'),ov=byS('vencida');
+  const sumPaid=sumF(paid),sumPend=sumF(pend),sumOv=sumF(ov);
+
+  // ── KPIs ─────────────────────────────────────────────────
   document.getElementById('rep-total').textContent=CLP(total);
-  document.getElementById('rep-paid-amt').textContent=CLP(sumF(paid));
-  document.getElementById('rep-pending-amt').textContent=CLP(sumF(pend));
-  document.getElementById('rep-overdue-amt').textContent=CLP(sumF(ov));
+  document.getElementById('rep-paid-amt').textContent=CLP(sumPaid);
+  document.getElementById('rep-pending-amt').textContent=CLP(sumPend);
+  document.getElementById('rep-overdue-amt').textContent=CLP(sumOv);
   document.getElementById('rep-avg').textContent=invoices.length?CLP(total/invoices.length):CLP(0);
-  document.getElementById('rep-with-photo').textContent=invoices.filter(i=>i.foto_path).length;
-  const maxAmt=Math.max(sumF(paid),sumF(pend),sumF(ov),1);
-  document.getElementById('repBarChart').innerHTML=[{label:'Pagadas',amt:sumF(paid),count:paid.length,color:'var(--green)'},{label:'Pendientes',amt:sumF(pend),count:pend.length,color:'var(--amber)'},{label:'Vencidas',amt:sumF(ov),count:ov.length,color:'var(--red)'}].map(r=>`<div class="bar-row"><div class="bar-label">${r.label}</div><div class="bar-track"><div class="bar-fill" style="width:${(r.amt/maxAmt)*100}%;background:${r.color}"></div></div><div class="bar-val">${CLP(r.amt)} <span style="color:var(--muted);font-size:0.7rem">(${r.count})</span></div></div>`).join('');
+
+  // Promedio días a vencer
+  const withDates=invoices.filter(i=>i.fecha_emision&&i.fecha_vencimiento);
+  const avgDays=withDates.length?Math.round(withDates.reduce((a,i)=>{
+    const d1=new Date(i.fecha_emision+'T00:00:00'),d2=new Date(i.fecha_vencimiento+'T00:00:00');
+    return a+(d2-d1)/(1000*60*60*24);
+  },0)/withDates.length):0;
+  document.getElementById('rep-avg-days').textContent=avgDays+' días';
+
+  // ── Highlights ────────────────────────────────────────────
+  const maxInv=[...invoices].sort((a,b)=>(+b.monto||0)-(+a.monto||0))[0];
+  document.getElementById('rep-max-inv').innerHTML=maxInv?`
+    <div style="padding:10px 0">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.4rem;font-weight:700;color:var(--cyan)">${CLP(maxInv.monto)}</div>
+      <div style="font-size:0.82rem;font-weight:500;margin-top:3px">${maxInv.proveedor}</div>
+      <div style="font-size:0.72rem;color:var(--muted);margin-top:2px">N° ${maxInv.numero} · ${fmtD(maxInv.fecha_emision)}</div>
+    </div>`:'<div style="color:var(--muted);font-size:0.82rem;padding:8px 0">Sin datos</div>';
+
+  const oldestUnpaid=[...invoices].filter(i=>i.estado!=='pagada'&&i.fecha_emision).sort((a,b)=>a.fecha_emision>b.fecha_emision?1:-1)[0];
+  const today0=new Date();today0.setHours(0,0,0,0);
+  document.getElementById('rep-oldest-unpaid').innerHTML=oldestUnpaid?`
+    <div style="padding:10px 0">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.4rem;font-weight:700;color:var(--amber)">${CLP(oldestUnpaid.monto)}</div>
+      <div style="font-size:0.82rem;font-weight:500;margin-top:3px">${oldestUnpaid.proveedor}</div>
+      <div style="font-size:0.72rem;color:var(--muted);margin-top:2px">Emitida ${fmtD(oldestUnpaid.fecha_emision)} · ${Math.round((today0-new Date(oldestUnpaid.fecha_emision+'T00:00:00'))/(1000*60*60*24))} días atrás</div>
+    </div>`:'<div style="color:var(--green);font-size:0.82rem;padding:8px 0">✅ Todo al día</div>';
+
+  const withPhoto=invoices.filter(i=>i.foto_path).length;
+  const withComp=invoices.filter(i=>i.pago?.comprobante_path).length;
+  const pctPhoto=invoices.length?Math.round(withPhoto/invoices.length*100):0;
+  document.getElementById('rep-docs').innerHTML=`
+    <div style="padding:10px 0;display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:0.78rem;color:var(--muted)">Con foto de factura</span>
+        <span style="font-size:0.82rem;font-weight:600;color:var(--text)">${withPhoto} <span style="color:var(--muted);font-weight:400">/ ${invoices.length} (${pctPhoto}%)</span></span>
+      </div>
+      <div style="height:6px;background:var(--surface2);border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${pctPhoto}%;background:var(--cyan);border-radius:3px;transition:width 0.6s"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+        <span style="font-size:0.78rem;color:var(--muted)">Con comprobante de pago</span>
+        <span style="font-size:0.82rem;font-weight:600;color:var(--text)">${withComp} <span style="color:var(--muted);font-weight:400">/ ${paid.length}</span></span>
+      </div>
+      <div style="height:6px;background:var(--surface2);border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${paid.length?Math.round(withComp/paid.length*100):0}%;background:var(--green);border-radius:3px;transition:width 0.6s"></div>
+      </div>
+    </div>`;
+
+  // ── Detalle por estado ────────────────────────────────────
+  const maxAmt=Math.max(sumPaid,sumPend,sumOv,1);
+  document.getElementById('repBarChart').innerHTML=[
+    {label:'Pagadas',amt:sumPaid,count:paid.length,color:'var(--green)'},
+    {label:'Pendientes',amt:sumPend,count:pend.length,color:'var(--amber)'},
+    {label:'Vencidas',amt:sumOv,count:ov.length,color:'var(--red)'}
+  ].map(r=>`<div class="bar-row">
+    <div class="bar-label">${r.label}</div>
+    <div class="bar-track"><div class="bar-fill" style="width:${(r.amt/maxAmt)*100}%;background:${r.color}"></div></div>
+    <div class="bar-val">${CLP(r.amt)} <span style="color:var(--muted);font-size:0.7rem">(${r.count} fact.)</span></div>
+  </div>`).join('');
+
+  // ── Evolución mensual — tabla comparativa ─────────────────
+  document.getElementById('rep-year-lbl').textContent=repYr;
+  const mnames=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const mPaid=Array(12).fill(0),mPend=Array(12).fill(0),mCount=Array(12).fill(0);
+  invoices.forEach(i=>{
+    if(!i.fecha_emision||+i.fecha_emision.slice(0,4)!==repYr) return;
+    const m=+i.fecha_emision.slice(5,7)-1;
+    mCount[m]++;
+    if(i.estado==='pagada') mPaid[m]+=(+i.monto||0);
+    else mPend[m]+=(+i.monto||0);
+  });
+  const TH='padding:8px 12px;text-align:right;font-size:0.68rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);border-bottom:1px solid var(--border)';
+  const THL='padding:8px 12px;text-align:left;font-size:0.68rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);border-bottom:1px solid var(--border)';
+  document.getElementById('repMonthTable').innerHTML=`
+    <table style="width:100%;border-collapse:collapse">
+      <thead><tr>
+        <th style="${THL}">Mes</th>
+        <th style="${TH}">Facturas</th>
+        <th style="${TH}">Pagado</th>
+        <th style="${TH}">Pendiente</th>
+        <th style="${TH}">Total</th>
+      </tr></thead>
+      <tbody>${mnames.map((m,idx)=>{
+        const tot=mPaid[idx]+mPend[idx];
+        const hasData=mCount[idx]>0;
+        const pct=tot>0?Math.round(mPaid[idx]/tot*100):0;
+        return `<tr style="border-bottom:1px solid var(--border);${!hasData?'opacity:0.35':''}">
+          <td style="padding:10px 12px;font-size:0.82rem;font-weight:${hasData?500:400}">${m}</td>
+          <td style="padding:10px 12px;text-align:right;font-size:0.78rem;color:var(--muted)">${hasData?mCount[idx]+'  fact.':'—'}</td>
+          <td style="padding:10px 12px;text-align:right;font-size:0.82rem;color:var(--green)">${hasData?CLP(mPaid[idx]):'—'}</td>
+          <td style="padding:10px 12px;text-align:right;font-size:0.82rem;color:var(--amber)">${hasData&&mPend[idx]>0?CLP(mPend[idx]):'—'}</td>
+          <td style="padding:10px 12px;text-align:right">
+            ${hasData?`<div style="font-family:'Barlow Condensed',sans-serif;font-size:0.95rem;font-weight:600">${CLP(tot)}</div>
+            <div style="font-size:0.65rem;color:var(--muted);margin-top:1px">${pct}% pagado</div>`:'—'}
+          </td>
+        </tr>`;
+      }).join('')}
+      <tr style="border-top:2px solid var(--border2);background:var(--surface2)">
+        <td style="padding:10px 12px;font-size:0.78rem;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--muted)">Total ${repYr}</td>
+        <td style="padding:10px 12px;text-align:right;font-size:0.82rem;color:var(--muted)">${mCount.reduce((a,b)=>a+b,0)} fact.</td>
+        <td style="padding:10px 12px;text-align:right;font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;color:var(--green)">${CLP(mPaid.reduce((a,b)=>a+b,0))}</td>
+        <td style="padding:10px 12px;text-align:right;font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;color:var(--amber)">${CLP(mPend.reduce((a,b)=>a+b,0))}</td>
+        <td style="padding:10px 12px;text-align:right;font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:700;color:var(--cyan)">${CLP(mPaid.reduce((a,b)=>a+b,0)+mPend.reduce((a,b)=>a+b,0))}</td>
+      </tr>
+      </tbody>
+    </table>`;
+
+  // ── Reporte por proveedor ─────────────────────────────────
+  const pm={};
+  invoices.forEach(i=>{
+    if(!pm[i.proveedor]) pm[i.proveedor]={rut:i.rut||'—',total:0,pagado:0,pendiente:0,count:0,pagadas:0,pendientes:0,vencidas:0};
+    const p=pm[i.proveedor];
+    p.total+=(+i.monto||0); p.count++;
+    if(i.estado==='pagada'){p.pagado+=(+i.monto||0);p.pagadas++;}
+    else if(i.estado==='pendiente'){p.pendiente+=(+i.monto||0);p.pendientes++;}
+    else p.vencidas++;
+  });
+  const provs=Object.entries(pm).sort((a,b)=>b[1].total-a[1].total);
+  document.getElementById('repProvTable').innerHTML=`
+    <table style="width:100%;border-collapse:collapse">
+      <thead><tr style="background:var(--bg2)">
+        <th style="${THL}">Proveedor</th>
+        <th style="${TH}">Facturas</th>
+        <th style="${TH}">Pagado</th>
+        <th style="${TH}">Pendiente</th>
+        <th style="${TH}">Total</th>
+        <th style="${TH}">% Pagado</th>
+      </tr></thead>
+      <tbody>${provs.map(([name,p])=>{
+        const pct=p.total>0?Math.round(p.pagado/p.total*100):0;
+        const pctColor=pct===100?'var(--green)':pct>=50?'var(--amber)':'var(--red)';
+        return `<tr style="border-bottom:1px solid var(--border);transition:background 0.1s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+          <td style="padding:11px 12px">
+            <div style="font-size:0.84rem;font-weight:500">${name}</div>
+            <div style="font-size:0.7rem;color:var(--muted)">${p.rut}</div>
+          </td>
+          <td style="padding:11px 12px;text-align:right;font-size:0.78rem;color:var(--muted)">
+            <span style="color:var(--green)">${p.pagadas}✓</span> 
+            <span style="color:var(--amber)">${p.pendientes}◷</span>
+            ${p.vencidas?`<span style="color:var(--red)">${p.vencidas}⚠</span>`:''}
+          </td>
+          <td style="padding:11px 12px;text-align:right;font-size:0.82rem;color:var(--green)">${CLP(p.pagado)}</td>
+          <td style="padding:11px 12px;text-align:right;font-size:0.82rem;color:${p.pendiente>0?'var(--amber)':'var(--muted)'}">
+            ${p.pendiente>0?CLP(p.pendiente):'—'}
+          </td>
+          <td style="padding:11px 12px;text-align:right;font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:600">${CLP(p.total)}</td>
+          <td style="padding:11px 12px;text-align:right">
+            <div style="display:flex;align-items:center;gap:8px;justify-content:flex-end">
+              <div style="width:50px;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden">
+                <div style="height:100%;width:${pct}%;background:${pctColor};border-radius:3px"></div>
+              </div>
+              <span style="font-size:0.78rem;color:${pctColor};font-weight:600;min-width:32px">${pct}%</span>
+            </div>
+          </td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+    </table>`;
+
+  // ── Tabla facturas filtrable ──────────────────────────────
+  const fSt=document.getElementById('repFilterStatus')?.value||'';
+  const fMo=document.getElementById('repFilterMonth')?.value||'';
+  const fSortF=document.getElementById('repSortField')?.value||'fecha_emision';
+  let filtered=[...invoices];
+  if(fSt) filtered=filtered.filter(i=>i.estado===fSt);
+  if(fMo) filtered=filtered.filter(i=>(i.fecha_emision||'').slice(5,7)===fMo);
+  filtered.sort((a,b)=>{
+    let va=a[fSortF]||'',vb=b[fSortF]||'';
+    if(fSortF==='monto'){va=+va;vb=+vb;return vb-va;}
+    return va<vb?1:va>vb?-1:0;
+  });
+  const bm={pagada:'var(--green-dim)',pendiente:'var(--amber-dim)',vencida:'var(--red-dim)'};
+  const cm={pagada:'var(--green)',pendiente:'var(--amber)',vencida:'var(--red)'};
+  const lm={pagada:'Pagada',pendiente:'Pendiente',vencida:'Vencida'};
+  document.getElementById('repInvTable').innerHTML=filtered.length?`
+    <table style="width:100%;border-collapse:collapse">
+      <thead><tr style="background:var(--bg2)">
+        <th style="${THL}">N° Factura</th>
+        <th style="${THL}">Proveedor</th>
+        <th style="${TH}">Emisión</th>
+        <th style="${TH}">Vencimiento</th>
+        <th style="${TH}">Monto</th>
+        <th style="${TH}">Estado</th>
+      </tr></thead>
+      <tbody>${filtered.map(i=>`
+        <tr style="border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.1s" onclick="goToInvoice('${i.id}')" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+          <td style="padding:9px 12px;font-size:0.8rem;color:var(--cyan);font-family:'Barlow Condensed',sans-serif">${i.numero}</td>
+          <td style="padding:9px 12px">
+            <div style="font-size:0.82rem;font-weight:500">${i.proveedor}</div>
+            <div style="font-size:0.68rem;color:var(--muted)">${i.rut||''}</div>
+          </td>
+          <td style="padding:9px 12px;text-align:right;font-size:0.78rem;color:var(--muted)">${fmtD(i.fecha_emision)}</td>
+          <td style="padding:9px 12px;text-align:right;font-size:0.78rem;color:var(--muted)">${fmtD(i.fecha_vencimiento)}</td>
+          <td style="padding:9px 12px;text-align:right;font-family:'Barlow Condensed',sans-serif;font-size:0.95rem;font-weight:600">${CLP(i.monto)}</td>
+          <td style="padding:9px 12px;text-align:right">
+            <span style="font-size:0.68rem;padding:3px 8px;border-radius:4px;background:${bm[i.estado]};color:${cm[i.estado]};font-weight:600">${lm[i.estado]}</span>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+    <div style="padding:10px 12px;font-size:0.72rem;color:var(--muted);text-align:right">${filtered.length} facturas · Total: ${CLP(sumF(filtered))}</div>`
+    :'<div style="padding:20px;text-align:center;color:var(--muted);font-size:0.82rem">Sin facturas con los filtros seleccionados</div>';
+}
+
+// ── Export functions ──────────────────────────────────────
+function exportRepCSV(){
+  const sumF=arr=>arr.reduce((a,b)=>a+(+b.monto||0),0);
+  const byS=s=>invoices.filter(i=>i.estado===s);
+  const paid=byS('pagada'),pend=byS('pendiente'),ov=byS('vencida');
+  const rows=[
+    ['RESUMEN EJECUTIVO',''],
+    ['Total emitido',sumF(invoices)],
+    ['Total pagado',sumF(paid)],
+    ['Por cobrar',sumF(pend)],
+    ['Monto vencido',sumF(ov)],
+    ['Promedio factura',invoices.length?Math.round(sumF(invoices)/invoices.length):0],
+    ['',''],
+    ['DETALLE POR PROVEEDOR','','','','',''],
+    ['Proveedor','RUT','Total','Pagado','Pendiente','% Pagado'],
+  ];
+  const pm={};
+  invoices.forEach(i=>{
+    if(!pm[i.proveedor]) pm[i.proveedor]={rut:i.rut||'',total:0,pagado:0,pendiente:0};
+    pm[i.proveedor].total+=(+i.monto||0);
+    if(i.estado==='pagada') pm[i.proveedor].pagado+=(+i.monto||0);
+    else pm[i.proveedor].pendiente+=(+i.monto||0);
+  });
+  Object.entries(pm).sort((a,b)=>b[1].total-a[1].total).forEach(([name,p])=>{
+    rows.push([name,p.rut,p.total,p.pagado,p.pendiente,p.total>0?Math.round(p.pagado/p.total*100)+'%':'0%']);
+  });
+  const csv=rows.map(r=>r.join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}));
+  a.download=`reporte_luna_perla_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  toast('CSV exportado');
+}
+
+function exportProvCSV(){
+  const pm={};
+  invoices.forEach(i=>{
+    if(!pm[i.proveedor]) pm[i.proveedor]={rut:i.rut||'',total:0,pagado:0,pendiente:0,count:0,pagadas:0,pendientes:0,vencidas:0};
+    const p=pm[i.proveedor];p.total+=(+i.monto||0);p.count++;
+    if(i.estado==='pagada'){p.pagado+=(+i.monto||0);p.pagadas++;}
+    else if(i.estado==='pendiente'){p.pendiente+=(+i.monto||0);p.pendientes++;}
+    else p.vencidas++;
+  });
+  const rows=[['Proveedor','RUT','Total facturas','Pagadas','Pendientes','Vencidas','Monto total','Monto pagado','Monto pendiente','% Pagado']];
+  Object.entries(pm).sort((a,b)=>b[1].total-a[1].total).forEach(([name,p])=>{
+    rows.push([name,p.rut,p.count,p.pagadas,p.pendientes,p.vencidas,p.total,p.pagado,p.pendiente,p.total>0?Math.round(p.pagado/p.total*100)+'%':'0%']);
+  });
+  const csv=rows.map(r=>r.join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}));
+  a.download=`proveedores_luna_perla_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  toast('CSV proveedores exportado');
+}
+
+function exportRepPDF(){
+  const byS=s=>invoices.filter(i=>i.estado===s);
+  const sumF=arr=>arr.reduce((a,b)=>a+(+b.monto||0),0);
+  const paid=byS('pagada'),pend=byS('pendiente'),ov=byS('vencida');
+  const total=sumF(invoices);
+  const now=new Date().toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'});
+  const pm={};
+  invoices.forEach(i=>{
+    if(!pm[i.proveedor]) pm[i.proveedor]={total:0,pagado:0,count:0};
+    pm[i.proveedor].total+=(+i.monto||0);pm[i.proveedor].count++;
+    if(i.estado==='pagada') pm[i.proveedor].pagado+=(+i.monto||0);
+  });
+  const topProvs=Object.entries(pm).sort((a,b)=>b[1].total-a[1].total).slice(0,8);
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>Reporte Luna de Perla</title>
+  <style>body{font-family:Arial,sans-serif;color:#1a1a2e;margin:0;padding:32px;font-size:13px}
+  h1{color:#00b4d8;font-size:22px;margin-bottom:4px}h2{font-size:14px;color:#555;margin:24px 0 10px;border-bottom:2px solid #eee;padding-bottom:4px}
+  .meta{color:#888;font-size:11px;margin-bottom:24px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:8px}
+  .kpi{background:#f8f9fa;border-radius:8px;padding:14px;text-align:center}.kpi-val{font-size:18px;font-weight:700;color:#00b4d8}
+  .kpi-lbl{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+  .kpi-val.green{color:#2ecc71}.kpi-val.amber{color:#f39c12}.kpi-val.red{color:#e74c3c}
+  table{width:100%;border-collapse:collapse;margin-top:8px}th{background:#f0f0f0;padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#666}
+  td{padding:8px 10px;border-bottom:1px solid #eee;font-size:12px}tr:hover td{background:#fafafa}
+  .pct-bar{background:#eee;border-radius:3px;height:6px;overflow:hidden;margin-top:3px}
+  .pct-fill{height:100%;border-radius:3px;background:#2ecc71}
+  footer{margin-top:32px;text-align:center;color:#bbb;font-size:10px;border-top:1px solid #eee;padding-top:12px}
+  </style></head><body>
+  <h1>🌙 Luna de Perla — Reporte de Facturas</h1>
+  <div class="meta">Generado el ${now} · ${invoices.length} facturas en total</div>
+  <h2>Resumen Ejecutivo</h2>
+  <div class="grid">
+    <div class="kpi"><div class="kpi-val">${CLP(total)}</div><div class="kpi-lbl">Total emitido</div></div>
+    <div class="kpi"><div class="kpi-val green">${CLP(sumF(paid))}</div><div class="kpi-lbl">Total pagado</div></div>
+    <div class="kpi"><div class="kpi-val amber">${CLP(sumF(pend))}</div><div class="kpi-lbl">Por cobrar</div></div>
+    <div class="kpi"><div class="kpi-val red">${CLP(sumF(ov))}</div><div class="kpi-lbl">Vencido</div></div>
+    <div class="kpi"><div class="kpi-val">${total>0?Math.round(sumF(paid)/total*100):0}%</div><div class="kpi-lbl">% Pagado</div></div>
+    <div class="kpi"><div class="kpi-val">${invoices.length?CLP(total/invoices.length):0}</div><div class="kpi-lbl">Promedio factura</div></div>
+  </div>
+  <h2>Top Proveedores</h2>
+  <table><thead><tr><th>Proveedor</th><th>Facturas</th><th>Total</th><th>Pagado</th><th>% Pagado</th></tr></thead><tbody>
+  ${topProvs.map(([name,p])=>`<tr><td>${name}</td><td>${p.count}</td><td>${CLP(p.total)}</td><td style="color:#2ecc71">${CLP(p.pagado)}</td><td><div>${p.total>0?Math.round(p.pagado/p.total*100):0}%</div><div class="pct-bar"><div class="pct-fill" style="width:${p.total>0?Math.round(p.pagado/p.total*100):0}%"></div></div></td></tr>`).join('')}
+  </tbody></table>
+  <footer>Luna de Perla — Control de Pago de Facturas · Distribuidora de Confites</footer>
+  </body></html>`;
+  const w=window.open('','_blank');
+  w.document.write(html);w.document.close();
+  setTimeout(()=>w.print(),500);
 }
 
 function renderProveedores(){
