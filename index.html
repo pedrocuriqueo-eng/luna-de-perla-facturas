@@ -480,6 +480,7 @@ tbody tr:hover .racts{opacity:1}
   .bar-label{width:48px;font-size:0.7rem}.bar-val{width:68px;font-size:0.72rem}
   .donut-wrap{gap:14px}
   .stat-row{grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+  #dashKpiRow{grid-template-columns:1fr 1fr!important}
   .stat-box{padding:12px 10px}.stat-val{font-size:1.1rem}.stat-lbl{font-size:0.6rem}
   .pager{flex-direction:column;gap:8px;align-items:center;padding:10px}
 }
@@ -667,7 +668,7 @@ tbody tr:hover .racts{opacity:1}
     <!-- DASHBOARD VIEW -->
     <div class="view" id="view-dashboard">
       <!-- KPI Row mejorado -->
-      <div class="stat-row" style="grid-template-columns:repeat(5,1fr)">
+      <div class="stat-row" id="dashKpiRow" style="grid-template-columns:repeat(5,1fr)">
         <div class="stat-box">
           <div class="stat-val" id="db-total" style="color:var(--cyan)">$0</div>
           <div class="stat-lbl">Monto total</div>
