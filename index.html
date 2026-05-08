@@ -454,6 +454,8 @@ tbody tr:hover .racts{opacity:1}
   .hamburger{display:none !important}
 }
 
+/* ── Mobile card view for invoice table ── */
+.inv-card{display:none}
 @media(max-width:700px){
   .page-heading{font-size:1.3rem}
   .page-date{display:none}
@@ -461,9 +463,9 @@ tbody tr:hover .racts{opacity:1}
   .btn-primary{padding:8px 14px;font-size:0.78rem}
   .cards{grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
   .card{padding:14px}.card-value{font-size:1.4rem}.card-meta{font-size:0.68rem}
-  .section{overflow-x:auto}
-  table{min-width:520px}
-  th,td{padding:10px 12px!important;font-size:0.78rem}
+  /* Hide table, show cards instead */
+  .section table,.section thead,.section tbody,.section tr,.section th,.section td{display:none!important}
+  .inv-card{display:block}
   .racts{opacity:1}
   .section-header{flex-direction:column;align-items:stretch;gap:8px;padding:12px}
   .search-box{min-width:unset}.filter-sel{width:100%}
@@ -487,11 +489,25 @@ tbody tr:hover .racts{opacity:1}
   .content{padding:12px 12px 76px}
   .card-value{font-size:1.3rem}
   .stat-row{grid-template-columns:1fr}
-  table{min-width:460px}
 }
 </style>
 </head>
 <body>
+
+<!-- Alerta facturas próximas a vencer -->
+<div id="vencimientoAlert" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;padding:0">
+  <div id="vencimientoAlertInner" style="background:linear-gradient(135deg,#1a0f00,#2d1800);border-bottom:2px solid var(--amber);padding:12px 20px;display:flex;align-items:center;gap:14px;box-shadow:0 4px 24px rgba(0,0,0,0.4)">
+    <div style="font-size:1.4rem;flex-shrink:0">⚠️</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:0.8rem;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:2px">Facturas por vencer</div>
+      <div id="vencimientoAlertMsg" style="font-size:0.82rem;color:var(--text)"></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-shrink:0">
+      <button onclick="goToVencidas()" style="background:var(--amber);border:none;color:#1a0f00;border-radius:6px;padding:6px 14px;font-size:0.75rem;font-weight:700;cursor:pointer">Ver facturas</button>
+      <button onclick="closeVencimientoAlert()" style="background:transparent;border:1px solid rgba(255,179,64,0.3);color:var(--amber);border-radius:6px;padding:6px 10px;font-size:0.75rem;cursor:pointer">✕</button>
+    </div>
+  </div>
+</div>
 
 <!-- Login Screen -->
 <div id="loginScreen">
@@ -641,6 +657,8 @@ tbody tr:hover .racts{opacity:1}
           </tr></thead>
           <tbody id="tableBody"></tbody>
         </table>
+        <!-- Mobile card view (visible only on small screens) -->
+        <div id="mobileCards" class="inv-card" style="padding:8px 12px;display:flex;flex-direction:column;gap:10px"></div>
         <div class="empty" id="emptyState" style="display:none"><span class="empty-icon">◈</span><p class="empty-text">No se encontraron facturas</p></div>
         <div class="pager"><div class="pager-info" id="pageInfo"></div><div style="display:flex;align-items:center;gap:8px"><label style="font-size:0.72rem;color:var(--muted)">Filas:</label><select id="pageSizeSelect" onchange="pageSize=+this.value;page=1;renderTable()" style="background:var(--surface);border:1px solid var(--border2);color:var(--text);border-radius:6px;padding:3px 8px;font-size:0.75rem;cursor:pointer"><option value="10">10</option><option value="25" selected>25</option><option value="50">50</option><option value="100">100</option></select></div><div class="pager-btns" id="pageBtns"></div></div>
       </div>
@@ -1342,6 +1360,7 @@ async function loadInvoices() {
     invoices = await dbGet('facturas');
     setSynced();
     checkAlertasAuto();
+    checkVencimientoAlert();
   } catch(e) {
     setSyncError();
     toast('Error al conectar con Supabase: ' + e.message);
@@ -1452,6 +1471,52 @@ function renderTable() {
     pb.appendChild(mk('→',page+1,page===pages));
   }
   updateSummary();
+  renderMobileCards(slice);
+}
+
+function renderMobileCards(slice){
+  const el=document.getElementById('mobileCards');
+  if(!el) return;
+  const bm={pagada:'var(--green-dim)',pendiente:'var(--amber-dim)',vencida:'var(--red-dim)'};
+  const cm={pagada:'var(--green)',pendiente:'var(--amber)',vencida:'var(--red)'};
+  const im={pagada:'✓',pendiente:'◷',vencida:'⚠'};
+  const lm={pagada:'Pagada',pendiente:'Pendiente',vencida:'Vencida'};
+  el.innerHTML=slice.map(i=>`
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;position:relative">
+      <!-- Header -->
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px">
+        <div style="flex:1;min-width:0">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;color:var(--cyan)">${i.numero}</div>
+          <div style="font-size:0.88rem;font-weight:600;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${i.proveedor}</div>
+          <div style="font-size:0.7rem;color:var(--muted)">${i.rut||''}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.2rem;font-weight:700">${CLP(i.monto)}</div>
+          <div style="margin-top:4px">
+            <span style="font-size:0.68rem;padding:3px 8px;border-radius:4px;background:${bm[i.estado]};color:${cm[i.estado]};font-weight:600">${lm[i.estado]}</span>
+          </div>
+        </div>
+      </div>
+      <!-- Dates -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;padding:8px 10px;background:var(--surface2);border-radius:var(--r-sm)">
+        <div>
+          <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:2px">Emisión</div>
+          <div style="font-size:0.78rem">${fmtD(i.fecha_emision)}</div>
+        </div>
+        <div>
+          <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:2px">Vencimiento</div>
+          <div style="font-size:0.78rem;color:${i.estado==='vencida'?'var(--red)':i.estado==='pendiente'?'var(--amber)':'inherit'}">${fmtD(i.fecha_vencimiento)}</div>
+        </div>
+      </div>
+      ${i.estado==='pagada'&&i.pago?`<div style="font-size:0.72rem;color:var(--green);margin-bottom:10px;padding:6px 10px;background:var(--green-dim);border-radius:var(--r-sm)">📅 Pagado: ${fmtD(i.pago.fecha)}${i.pago.metodo?' · '+i.pago.metodo:''}${i.pago.referencia?' · '+i.pago.referencia:''}</div>`:''}
+      <!-- Actions -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${canEdit2()?`<button class="iBtn ok" onclick="togglePaid('${i.id}')" title="${i.estado==='pagada'?'Desmarcar':'Marcar como pagada'}" style="flex:1;justify-content:center">${i.estado==='pagada'?'↩ Desmarcar':'✓ Marcar pagada'}</button>`:''}
+        ${canEdit2()&&i.estado==='pagada'?`<button class="iBtn" onclick="openEditPayModal('${i.id}')" title="Editar pago" style="color:var(--cyan)">💳</button>`:''}
+        ${canEdit2()?`<button class="iBtn" onclick="editInvoice('${i.id}')" title="Editar">✎</button>`:''}
+        ${canDelete()?`<button class="iBtn del" onclick="deleteInvoice('${i.id}')" title="Eliminar">✕</button>`:''}
+      </div>
+    </div>`).join('');
 }
 
 function updateSummary(){
@@ -1747,6 +1812,15 @@ async function deleteInvoice(id){
 async function togglePaid(id){
   const inv=invoices.find(i=>i.id===id);if(!inv)return;
   if(inv.estado==='pagada'){
+    // Mostrar confirmación con detalle del pago registrado
+    const pagoInfo = inv.pago ? [
+      inv.pago.fecha ? `Fecha: ${fmtD(inv.pago.fecha)}` : '',
+      inv.pago.metodo ? `Método: ${inv.pago.metodo}` : '',
+      inv.pago.referencia ? `Ref: ${inv.pago.referencia}` : '',
+      inv.pago.comprobante_path ? '⚠️ Se perderá el comprobante adjunto' : ''
+    ].filter(Boolean).join('\n') : '';
+    const msg = `¿Desmarcar esta factura como pagada?\n\nProveedor: ${inv.proveedor}\nMonto: ${CLP(inv.monto)}${pagoInfo?'\n\nPago registrado:\n'+pagoInfo:''}\n\nSe eliminará el registro del pago. Esta acción no se puede deshacer.`;
+    if(!confirm(msg)) return;
     showSpinner('Actualizando…');
     try{
       await dbUpdate('facturas',id,{estado:'pendiente',pago:null});
@@ -2592,6 +2666,42 @@ function navigateTab(view, btn){
 function toggleSidebar(){}
 function closeSidebar(){}
 function mobileNav(){}
+
+// ── Alerta facturas próximas a vencer ────────────────────
+function checkVencimientoAlert(){
+  const today=new Date();today.setHours(0,0,0,0);
+  const in7=new Date(today);in7.setDate(in7.getDate()+7);
+  const porVencer=invoices.filter(i=>{
+    if(i.estado==='pagada'||!i.fecha_vencimiento) return false;
+    const vd=new Date(i.fecha_vencimiento+'T00:00:00');
+    return vd>=today && vd<=in7;
+  });
+  const vencidas=invoices.filter(i=>i.estado==='vencida'||
+    (i.estado==='pendiente'&&i.fecha_vencimiento&&new Date(i.fecha_vencimiento+'T00:00:00')<today));
+  const total=porVencer.length+vencidas.length;
+  if(total===0){closeVencimientoAlert();return;}
+  const partes=[];
+  if(vencidas.length) partes.push(`<strong style="color:var(--red)">${vencidas.length} vencida${vencidas.length>1?'s':''}</strong>`);
+  if(porVencer.length) partes.push(`<strong style="color:var(--amber)">${porVencer.length} vence${porVencer.length>1?'n':''} en los próximos 7 días</strong>`);
+  document.getElementById('vencimientoAlertMsg').innerHTML=partes.join(' · ')+' — Revisa y gestiona los pagos pendientes.';
+  document.getElementById('vencimientoAlert').style.display='block';
+  // Push content down
+  const content=document.getElementById('contentWrap');
+  if(content) content.style.paddingTop=(document.getElementById('vencimientoAlertInner').offsetHeight)+'px';
+}
+
+function closeVencimientoAlert(){
+  document.getElementById('vencimientoAlert').style.display='none';
+  const content=document.getElementById('contentWrap');
+  if(content) content.style.paddingTop='';
+}
+
+function goToVencidas(){
+  closeVencimientoAlert();
+  showView('facturas');
+  document.getElementById('filterStatus').value='pendiente';
+  renderTable();
+}
 
 function onLoginSuccess() {
   // Update sidebar
