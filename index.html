@@ -642,7 +642,7 @@ tbody tr:hover .racts{opacity:1}
           <tbody id="tableBody"></tbody>
         </table>
         <div class="empty" id="emptyState" style="display:none"><span class="empty-icon">◈</span><p class="empty-text">No se encontraron facturas</p></div>
-        <div class="pager"><div class="pager-info" id="pageInfo"></div><div style="display:flex;align-items:center;gap:8px"><label style="font-size:0.72rem;color:var(--muted)">Filas:</label><select id="pageSizeSelect" onchange="pageSize=+this.value;page=1;renderTable()" style="background:var(--surface);border:1px solid var(--border2);color:var(--text);border-radius:6px;padding:3px 8px;font-size:0.75rem;cursor:pointer"><option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option></select></div><div class="pager-btns" id="pageBtns"></div></div>
+        <div class="pager"><div class="pager-info" id="pageInfo"></div><div style="display:flex;align-items:center;gap:8px"><label style="font-size:0.72rem;color:var(--muted)">Filas:</label><select id="pageSizeSelect" onchange="pageSize=+this.value;page=1;renderTable()" style="background:var(--surface);border:1px solid var(--border2);color:var(--text);border-radius:6px;padding:3px 8px;font-size:0.75rem;cursor:pointer"><option value="10">10</option><option value="25" selected>25</option><option value="50">50</option><option value="100">100</option></select></div><div class="pager-btns" id="pageBtns"></div></div>
       </div>
     </div><!-- /facturas -->
 
@@ -1296,7 +1296,7 @@ let currentPhotoFile = null, currentPhotoPreview = null;
 let currentPayPhotoFile = null;
 let currentCompFile = null;
 let payingId = null;
-let pageSize = 10;
+let pageSize = 25;
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 
