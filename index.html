@@ -1053,7 +1053,13 @@ tbody tr:hover .racts{opacity:1}
     <div class="modal-top"><div class="modal-title" id="modalTitle">Nueva Factura</div><button class="modal-x" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
       <div class="fgrid">
-        <div class="fld"><label>N° Factura *</label><input type="text" id="fNumero" placeholder="F-0001"/></div>
+        <div class="fld">
+          <label>N° Factura *</label>
+          <input type="text" id="fNumero" placeholder="F-0001" oninput="checkNumeroDuplicado(this)"/>
+          <div id="numeroDupWarn" style="display:none;margin-top:5px;padding:7px 10px;background:var(--amber-dim);border:1px solid rgba(255,179,64,0.35);border-radius:6px;font-size:0.74rem;color:var(--amber)">
+            ⚠️ <span id="numeroDupMsg"></span>
+          </div>
+        </div>
         <div class="fld"><label>Estado *</label><select id="fEstado"><option value="pendiente">Pendiente</option><option value="pagada">Pagada</option><option value="vencida">Vencida</option></select></div>
         <div class="fld fspan"><label>Proveedor *</label><input type="text" id="fProveedor" placeholder="Nombre del proveedor"/></div>
         <div class="fld"><label>RUT Proveedor</label><input type="text" id="fRut" placeholder="12.345.678-9"/></div>
@@ -1600,6 +1606,18 @@ async function saveInvoice(){
   const estado=document.getElementById('fEstado').value;
   if(!numero||!proveedor||!monto||!fecha_emision){toast('Completa los campos obligatorios');return}
 
+  // Verificar duplicado solo al crear (no al editar)
+  if(!editingId){
+    const duplicado = invoices.find(i =>
+      i.numero.trim().toLowerCase() === numero.toLowerCase() &&
+      i.proveedor.trim().toLowerCase() === proveedor.trim().toLowerCase()
+    );
+    if(duplicado){
+      const msg = `⚠️ Factura duplicada\n\nYa existe una factura registrada con:\n• N°: ${duplicado.numero}\n• Proveedor: ${duplicado.proveedor}\n• Monto: ${CLP(duplicado.monto)}\n• Estado: ${duplicado.estado}\n\n¿Deseas registrarla de todas formas?`;
+      if(!confirm(msg)) return;
+    }
+  }
+
   showSpinner(editingId?'Actualizando…':'Guardando…');
   setSyncing();
   try {
@@ -1651,6 +1669,26 @@ async function saveInvoice(){
   } finally {
     setSynced();
     hideSpinner();closeModal();renderTable();
+  }
+}
+
+function checkNumeroDuplicado(input){
+  if(editingId) return; // No verificar al editar
+  const numero = input.value.trim().toLowerCase();
+  const proveedor = document.getElementById('fProveedor')?.value.trim().toLowerCase() || '';
+  const warn = document.getElementById('numeroDupWarn');
+  const msg = document.getElementById('numeroDupMsg');
+  if(!numero || !warn) return;
+  // Check by numero only first, then with proveedor if available
+  const dup = invoices.find(i => i.numero.trim().toLowerCase() === numero);
+  if(dup){
+    const mismoProveedor = proveedor && dup.proveedor.trim().toLowerCase() === proveedor;
+    msg.textContent = mismoProveedor
+      ? `Esta factura ya está registrada para ${dup.proveedor} · ${CLP(dup.monto)} · ${dup.estado}`
+      : `El N° ${dup.numero} ya existe para ${dup.proveedor} · ${CLP(dup.monto)} · ${dup.estado}`;
+    warn.style.display = 'block';
+  } else {
+    warn.style.display = 'none';
   }
 }
 
