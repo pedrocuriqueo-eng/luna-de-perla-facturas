@@ -1360,11 +1360,31 @@ document.getElementById('todayDate').textContent = `${now.getDate()} de ${MONTHS
 const CLP = n => new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n);
 const fmtD = d => { if(!d) return '—'; const [y,m,dd]=d.split('-'); return`${dd}/${m}/${y}`; };
 
+async function autoMarcarVencidas() {
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  // Facturas pendientes cuya fecha de vencimiento ya pasó
+  const porVencer = invoices.filter(i =>
+    i.estado === 'pendiente' &&
+    i.fecha_vencimiento &&
+    new Date(i.fecha_vencimiento + 'T00:00:00') < hoy
+  );
+  if(porVencer.length === 0) return;
+  console.log(`Actualizando ${porVencer.length} facturas a vencida…`);
+  // Update en paralelo
+  await Promise.all(porVencer.map(i =>
+    dbUpdate('facturas', i.id, { estado: 'vencida' }).then(() => {
+      i.estado = 'vencida'; // actualizar en memoria también
+    }).catch(e => console.error('Error actualizando vencida:', i.id, e))
+  ));
+  console.log('Facturas vencidas actualizadas:', porVencer.map(i=>i.numero).join(', '));
+}
+
 async function loadInvoices() {
   showSpinner('Cargando facturas…');
   setSyncing();
   try {
     invoices = await dbGet('facturas');
+    await autoMarcarVencidas(); // detectar y actualizar vencidas automáticamente
     setSynced();
     checkAlertasAuto();
     checkVencimientoAlert();
