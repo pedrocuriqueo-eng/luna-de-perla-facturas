@@ -1,6 +1,8 @@
 {
   "crons": [
-    { "path": "/api/cron/enviar-whatsapp", "schedule": "0 12 * * *" },
-    { "path": "/api/cron/recordatorio-facturas", "schedule": "0 12 * * *" }
+    {
+      "path": "/api/cron/enviar-whatsapp",
+      "schedule": "0 12 * * *"
+    }
   ]
 }
