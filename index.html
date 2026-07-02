@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -588,6 +587,7 @@ tbody tr:hover .racts{opacity:1}
     <button class="nav-item" onclick="navigate('proveedores',this)"><span class="nav-icon">◷</span> Proveedores</button>
     <button class="nav-item" id="navUsuarios" style="display:none" onclick="navigate('usuarios',this)"><span class="nav-icon">👥</span> Usuarios</button>
     <button class="nav-item" id="navAlertas" style="display:none" onclick="navigate('alertas',this)"><span class="nav-icon">🔔</span> Alertas WhatsApp</button>
+    <button class="nav-item" id="navMensajes" style="display:none" onclick="navigate('mensajes',this)"><span class="nav-icon">📅</span> Mensajes Programados</button>
     <button class="nav-item" onclick="navigate('categorias',this)"><span class="nav-icon">◧</span> Categorías</button>
   </nav>
   <div class="sidebar-footer">
@@ -991,6 +991,46 @@ tbody tr:hover .racts{opacity:1}
 
     </div><!-- /alertas -->
 
+    <!-- MENSAJES PROGRAMADOS VIEW -->
+    <div class="view" id="view-mensajes">
+
+      <!-- Nuevo mensaje -->
+      <div class="dash-panel" style="margin-bottom:18px">
+        <div class="panel-title">📅 Programar nuevo mensaje</div>
+        <div style="font-size:0.82rem;color:var(--muted);margin-bottom:18px;line-height:1.6">
+          Programa un mensaje de WhatsApp para que se envíe automáticamente en la fecha y hora indicadas. El envío ocurre a través del sistema automático (revisa la cola una vez al día). El número debe estar unido al Sandbox de Twilio.
+        </div>
+
+        <div class="fgrid" style="margin-bottom:16px">
+          <div class="fld">
+            <label>Número destino (WhatsApp) *</label>
+            <input type="text" id="msgTelefono" placeholder="+56988147155"/>
+          </div>
+          <div class="fld">
+            <label>Fecha y hora de envío *</label>
+            <input type="datetime-local" id="msgFecha"/>
+          </div>
+        </div>
+
+        <div class="fld" style="margin-bottom:16px">
+          <label>Mensaje *</label>
+          <textarea id="msgCuerpo" rows="4" placeholder="Escribe el mensaje que se enviará…" style="width:100%;resize:vertical;font-family:'Barlow',sans-serif;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--r-sm);background:var(--bg2);color:var(--text);font-size:0.85rem"></textarea>
+        </div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-primary" onclick="programarMensaje()">📅 Programar mensaje</button>
+          <div id="msgFormMsg" style="font-size:0.8rem"></div>
+        </div>
+      </div>
+
+      <!-- Cola de mensajes -->
+      <div class="dash-panel">
+        <div class="panel-title">Mensajes en cola <span id="msgCount"></span></div>
+        <div id="msgList"></div>
+      </div>
+
+    </div><!-- /mensajes -->
+
     <!-- CATEGORIAS VIEW -->
     <div class="view" id="view-categorias">
 
@@ -1042,6 +1082,9 @@ tbody tr:hover .racts{opacity:1}
   </button>
   <button class="tab-btn" id="tab-usuarios" style="display:none" onclick="navigateTab('usuarios',this)">
     <span class="tb-icon">👥</span>Usuarios
+  </button>
+  <button class="tab-btn" id="tab-mensajes" style="display:none" onclick="navigateTab('mensajes',this)">
+    <span style="font-size:1.1rem">📅</span><span>Mensajes</span>
   </button>
   <button class="tab-btn" id="tab-alertas" style="display:none" onclick="navigateTab('alertas',this)">
     <span class="tb-icon">🔔</span>Alertas
@@ -2031,7 +2074,7 @@ function exportCSV(){
 }
 
 // ── Navigation ────────────────────────────────────────────
-const pageTitles={facturas:'Facturas',dashboard:'Dashboard',reportes:'Reportes',proveedores:'Proveedores',usuarios:'Gestión de Usuarios',alertas:'Alertas WhatsApp',categorias:'Categorías'};
+const pageTitles={facturas:'Facturas',dashboard:'Dashboard',reportes:'Reportes',proveedores:'Proveedores',usuarios:'Gestión de Usuarios',alertas:'Alertas WhatsApp',categorias:'Categorías',mensajes:'Mensajes Programados'};
 function navigate(view,btn){
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
@@ -2045,6 +2088,7 @@ function navigate(view,btn){
   if(view==='usuarios') renderUsuarios();
   if(view==='alertas') renderAlertas();
   if(view==='categorias') renderCategorias();
+  if(view==='mensajes') renderMensajes();
 }
 
 // ── Dashboard ─────────────────────────────────────────────
@@ -2721,6 +2765,7 @@ function navigateTab(view, btn){
   if(view==='usuarios') renderUsuarios();
   if(view==='alertas') renderAlertas();
   if(view==='categorias') renderCategorias();
+  if(view==='mensajes') renderMensajes();
 }
 
 function toggleSidebar(){}
@@ -2778,6 +2823,9 @@ function onLoginSuccess() {
   if(tabU) tabU.style.display = isAdmin ? 'flex' : 'none';
   const tabA=document.getElementById('tab-alertas');
   if(tabA) tabA.style.display = isAdmin ? 'flex' : 'none';
+  document.getElementById('navMensajes').style.display = isAdmin ? 'flex' : 'none';
+  const tabM=document.getElementById('tab-mensajes');
+  if(tabM) tabM.style.display = isAdmin ? 'flex' : 'none';
   // Solo ocultar botón Nueva Factura para solo_lectura
   if(!canEdit) document.querySelector('.btn-primary').style.display = 'none';
   Object.assign(headers, { 'Authorization': `Bearer ${currentUser.access_token}` });
@@ -3253,6 +3301,89 @@ async function enviarAlertaPagoConfirmado(inv){
 
 // ── Toast ─────────────────────────────────────────────────
 let toastTimer;
+// ── Mensajes Programados ─────────────────────────────────
+async function programarMensaje(){
+  const tel=document.getElementById('msgTelefono').value.trim();
+  const cuerpo=document.getElementById('msgCuerpo').value.trim();
+  const fecha=document.getElementById('msgFecha').value;
+  const msgEl=document.getElementById('msgFormMsg');
+  msgEl.textContent='';
+  if(!tel||!cuerpo||!fecha){
+    msgEl.style.color='var(--red)';
+    msgEl.textContent='Completa n\u00famero, mensaje y fecha.';
+    return;
+  }
+  if(!tel.startsWith('+')){
+    msgEl.style.color='var(--red)';
+    msgEl.textContent='El n\u00famero debe empezar con + (ej: +56988147155).';
+    return;
+  }
+  const enviarEn=new Date(fecha).toISOString();
+  try{
+    await dbInsert('mensajes_programados',{
+      telefono:tel, cuerpo:cuerpo, enviar_en:enviarEn, estado:'pendiente'
+    });
+    document.getElementById('msgTelefono').value='';
+    document.getElementById('msgCuerpo').value='';
+    document.getElementById('msgFecha').value='';
+    msgEl.style.color='var(--cyan)';
+    msgEl.textContent='\u2713 Mensaje programado.';
+    toast('Mensaje programado');
+    renderMensajes();
+  }catch(e){
+    msgEl.style.color='var(--red)';
+    msgEl.textContent='Error: '+e.message;
+  }
+}
+
+async function renderMensajes(){
+  const cont=document.getElementById('msgList');
+  cont.innerHTML='<div style="color:var(--muted);font-size:0.8rem;padding:8px">Cargando\u2026</div>';
+  try{
+    const rows=await dbGet('mensajes_programados','select=*');
+    const countEl=document.getElementById('msgCount');
+    if(countEl) countEl.textContent=rows.length?`(${rows.length})`:'';
+    if(!rows.length){
+      cont.innerHTML='<div style="color:var(--muted);font-size:0.8rem;padding:8px">No hay mensajes en cola.</div>';
+      return;
+    }
+    rows.sort((a,b)=> new Date(a.enviar_en)-new Date(b.enviar_en));
+    const estadoBadge={
+      pendiente:'<span style="color:var(--amber)">\u23f3 Pendiente</span>',
+      enviado:'<span style="color:var(--cyan)">\u2713 Enviado</span>',
+      error:'<span style="color:var(--red)">\u2715 Error</span>'
+    };
+    cont.innerHTML=rows.map(m=>{
+      const f=new Date(m.enviar_en);
+      const fTxt=f.toLocaleString('es-CL',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+      const puedeBorrar=m.estado==='pendiente';
+      return `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:12px 14px;border:1px solid var(--border);border-radius:var(--r-sm);margin-bottom:8px;background:var(--surface2)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:0.8rem;color:var(--text);margin-bottom:4px">${escapeHtml(m.cuerpo||'')}</div>
+          <div style="font-size:0.72rem;color:var(--muted)">\ud83d\udcf1 ${escapeHtml(m.telefono)} \u00b7 \ud83d\udcc5 ${fTxt} \u00b7 ${estadoBadge[m.estado]||m.estado}</div>
+          ${m.error_detalle?`<div style="font-size:0.7rem;color:var(--red);margin-top:4px">${escapeHtml(m.error_detalle)}</div>`:''}
+        </div>
+        ${puedeBorrar?`<button class="btn btn-ghost" style="font-size:0.72rem;padding:4px 10px" onclick="borrarMensaje('${m.id}')">Cancelar</button>`:''}
+      </div>`;
+    }).join('');
+  }catch(e){
+    cont.innerHTML='<div style="color:var(--red);font-size:0.8rem;padding:8px">Error: '+e.message+'</div>';
+  }
+}
+
+async function borrarMensaje(id){
+  if(!confirm('\u00bfCancelar este mensaje programado?')) return;
+  try{
+    await dbDelete('mensajes_programados',id);
+    toast('Mensaje cancelado');
+    renderMensajes();
+  }catch(e){ toast('Error: '+e.message); }
+}
+
+function escapeHtml(s){
+  return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
 function toast(msg){clearTimeout(toastTimer);const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');toastTimer=setTimeout(()=>el.classList.remove('show'),2800);}
 
 // ── Start (show login first) ──────────────────────────────
